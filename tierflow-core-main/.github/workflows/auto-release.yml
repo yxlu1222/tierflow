@@ -1,0 +1,84 @@
+# 打 v* tag 时自动创建 GitHub Release。
+#
+# 只用内置 GITHUB_TOKEN(自带 contents:write),不依赖被禁用的 release.yml
+# (那个会编译 Linux/macOS/Windows 二进制、需要额外 secret)。
+# 正文从 CHANGELOG.md 中抽取对应版本段落(## vX.Y.Z 到下一个 ## 之间)。
+#
+# 触发:push 形如 v1.2.3 的 tag。
+# 行为:tag 不含 "-" 视为正式版 → 标记 Latest;含 "-"(如 v1.2.3-beta)→ 预发布。
+# 已存在同名 Release 时改为更新(edit),不报错。
+
+name: Auto GitHub Release on tag
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的 tag(如 v1.2.3),手动兜底用'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.tag }}"
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: ${VERSION}"
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          # 抽取 "## <VERSION>" 段落,到下一个 "## " 标题为止(不含)。
+          awk -v tag="$VERSION" '
+            $0 ~ ("^## " tag "([ \t]|$)") { f=1; next }
+            f && /^## / { exit }
+            f { print }
+          ' CHANGELOG.md | sed '/./,$!d' > RELEASE_NOTES.md
+          # 去掉首尾空行;若没抽到内容则用占位
+          if [ ! -s RELEASE_NOTES.md ]; then
+            printf 'Release %s\n' "$VERSION" > RELEASE_NOTES.md
+          fi
+          {
+            echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md"
+          } >> RELEASE_NOTES.md
+          echo "----- notes for ${VERSION} -----"
+          cat RELEASE_NOTES.md
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          # 含 "-" 视为预发布(如 v1.2.3-beta),否则标记 Latest
+          case "$VERSION" in
+            *-*) FLAG="--prerelease" ;;
+            *)   FLAG="--latest" ;;
+          esac
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION 已存在,更新正文。"
+            gh release edit "$VERSION" --title "$VERSION" --notes-file RELEASE_NOTES.md $FLAG
+          else
+            echo "创建 Release $VERSION。"
+            gh release create "$VERSION" --title "$VERSION" --notes-file RELEASE_NOTES.md --verify-tag $FLAG
+          fi

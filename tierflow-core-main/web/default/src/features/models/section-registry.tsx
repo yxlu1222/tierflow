@@ -1,0 +1,42 @@
+/*
+Copyright (C) 2023-2026 TierFlow
+*/
+import { createSectionRegistry } from '@/features/system-settings/utils/section-registry'
+
+/**
+ * Models page section definitions
+ */
+const MODELS_SECTIONS = [
+  {
+    id: 'metadata',
+    titleKey: 'Models',
+    build: () => null, // Content is rendered directly in the page component
+  },
+  {
+    id: 'groups',
+    titleKey: 'Model Groups',
+    build: () => null, // Content is rendered directly in the page component
+  },
+  {
+    id: 'vendors',
+    titleKey: 'Vendors',
+    build: () => null, // Content is rendered directly in the page component
+  },
+] as const
+
+export type ModelsSectionId = (typeof MODELS_SECTIONS)[number]['id']
+
+const modelsRegistry = createSectionRegistry<
+  ModelsSectionId,
+  Record<string, never>,
+  []
+>({
+  sections: MODELS_SECTIONS,
+  defaultSection: 'metadata',
+  basePath: '/models',
+  urlStyle: 'path',
+})
+
+export const MODELS_SECTION_IDS = modelsRegistry.sectionIds
+export const MODELS_DEFAULT_SECTION = modelsRegistry.defaultSection
+export const getModelsSectionNavItems = modelsRegistry.getSectionNavItems

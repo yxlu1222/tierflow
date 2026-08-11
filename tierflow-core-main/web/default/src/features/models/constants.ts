@@ -1,0 +1,102 @@
+/*
+Copyright (C) 2023-2026 TierFlow
+*/
+import { type TFunction } from 'i18next'
+import type { NameRule, ModelStatus } from './types'
+
+// ============================================================================
+// Pagination
+// ============================================================================
+
+export const DEFAULT_PAGE_SIZE = 20
+
+// ============================================================================
+// Name Rule Options
+// ============================================================================
+
+export function getNameRuleOptions(t: TFunction) {
+  return [
+    { label: t('Exact Match'), value: 0 as NameRule },
+    { label: t('Prefix Match'), value: 1 as NameRule },
+    { label: t('Contains Match'), value: 2 as NameRule },
+    { label: t('Suffix Match'), value: 3 as NameRule },
+  ] as const
+}
+
+export function getNameRuleConfig(
+  t: TFunction
+): Record<NameRule, { label: string; color: string; description: string }> {
+  return {
+    0: {
+      label: t('Exact'),
+      color: 'green',
+      description: t('Match model name exactly'),
+    },
+    1: {
+      label: t('Prefix'),
+      color: 'blue',
+      description: t('Match models starting with this name'),
+    },
+    2: {
+      label: t('Contains'),
+      color: 'orange',
+      description: t('Match models containing this name'),
+    },
+    3: {
+      label: t('Suffix'),
+      color: 'purple',
+      description: t('Match models ending with this name'),
+    },
+  }
+}
+
+// ============================================================================
+// Model Status
+// ============================================================================
+
+export function getModelStatusOptions(t: TFunction) {
+  return [
+    { label: t('All Status'), value: 'all' },
+    { label: t('Enabled'), value: 'enabled' },
+    { label: t('Disabled'), value: 'disabled' },
+  ] as const
+}
+
+export function getModelStatusConfig(
+  t: TFunction
+): Record<ModelStatus, { label: string; variant: 'success' | 'neutral' }> {
+  return {
+    1: { label: t('Enabled'), variant: 'success' },
+    0: { label: t('Disabled'), variant: 'neutral' },
+  }
+}
+
+// ============================================================================
+// Quota Type
+// ============================================================================
+
+export function getQuotaTypeConfig(
+  t: TFunction
+): Record<number, { label: string; color: string }> {
+  return {
+    0: { label: t('Usage-based'), color: 'violet' },
+    1: { label: t('Per-call'), color: 'teal' },
+  }
+}
+
+// ============================================================================
+// Endpoint Templates
+// ============================================================================
+
+export const ENDPOINT_TEMPLATES: Record<
+  string,
+  { path: string; method: string }
+> = {
+  openai: { path: '/v1/chat/completions', method: 'POST' },
+  'openai-response': { path: '/v1/responses', method: 'POST' },
+  anthropic: { path: '/v1/messages', method: 'POST' },
+  gemini: { path: '/v1beta/models/{model}:generateContent', method: 'POST' },
+  'jina-rerank': { path: '/rerank', method: 'POST' },
+  'image-generation': { path: '/v1/images/generations', method: 'POST' },
+  embeddings: { path: '/v1/embeddings', method: 'POST' },
+}

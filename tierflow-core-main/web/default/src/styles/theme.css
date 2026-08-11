@@ -1,0 +1,229 @@
+/*
+Copyright (C) 2023-2026 TierFlow
+*/
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans:
+    'MiSans', 'Public Sans', 'PingFang SC', 'PingFang HK', 'Microsoft Yahei',
+    '微软雅黑', 'Arial', sans-serif;
+  --font-inter:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-manrope:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  /* Monospace is intentionally aliased to the body font: the `font-mono`
+   * utility (and any `var(--font-mono)`) renders in the regular text face, so
+   * no monospace typeface is used anywhere in the app. */
+  --font-mono: var(--font-body);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-neutral: var(--neutral);
+  --color-neutral-foreground: var(--neutral-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* 0.5rem 原本来自 theme-presets.css 的 `[data-theme-radius='md']`(index.html
+   * 在 <body> 上写死了 md)。主题预设体系已删除,这里直接落成最终值。 */
+  --radius: 0.5rem;
+  --app-header-height: 3.75rem; /* 60px — matches reference header height */
+  /* Static build-channel fallback consumed when JS hasn't booted yet. */
+  --app-rev: '2k6e8r7p';
+  /* Body font is pinned to MiSans (`--font-sans`) app-wide — the entire app
+   * (tables, prose, code, former-mono) renders in a single typeface.
+   * See CLAUDE.md Rule 7. 主题预设与字体轴(serif)已随 theme-presets.css 一并
+   * 删除,此处不再需要 `!important` 去压制它们。 */
+  --font-body: var(--font-sans);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  /* TierFlow brand blue (#1456ff) */
+  --primary: oklch(0.55 0.23 264);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.49 0 0);
+  --accent: oklch(0.95 0 0);
+  --accent-foreground: oklch(0.145 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.596 0.145 163.225);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.681 0.162 75.834);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.588 0.158 241.966);
+  --info-foreground: oklch(0.985 0 0);
+  --neutral: oklch(0.708 0 0);
+  --neutral-foreground: oklch(0.145 0 0);
+  --border: oklch(0.93 0 0);
+  --input: oklch(0.93 0 0);
+  --ring: oklch(0.55 0.23 264);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+
+  /* 图表分类色板(series identity)—— 与上面的 --chart-1..5 **刻意分开**。
+     --chart-N 已经被 lib/colors.ts 与 components/status-badge.tsx 当作按名字取色的
+     语义徽章色在用(`purple: bg-chart-4` 之类),改它的色值会把徽章染错色。
+
+     8 槽固定顺序**就是** CVD 安全机制,不是审美排序:相邻槽位两两之间的色觉障碍
+     可分辨度是按这个顺序校验过的。改任何一个色值或顺序之前必须重跑校验器:
+       node scripts/validate_palette.js "<8 个 hex 逗号分隔>" --mode light --surface "#ffffff"
+     当前取值全部通过(亮色 surface #ffffff):明度带 / 彩度下限 / CVD 相邻分离
+     ΔE 9.1 / 正常视觉相邻 ΔE 19.6 均 PASS;aqua 2.82、yellow 2.17、magenta 2.69
+     三槽对比度低于 3:1 —— 按 relief 规则,用到这三槽的图必须配可见数值(图例带
+     占比)或同页明细表,不能只靠色块。
+
+     绝不靠取模循环生成第 9 个色相:循环出来的颜色在色觉障碍下与已有槽位不可分辨。 */
+  --series-1: #2a78d6; /* blue */
+  --series-2: #eb6834; /* orange */
+  --series-3: #1baf7a; /* aqua */
+  --series-4: #eda100; /* yellow */
+  --series-5: #e87ba4; /* magenta */
+  --series-6: #008300; /* green */
+  --series-7: #4a3aa7; /* violet */
+  --series-8: #e34948; /* red */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.55 0.23 264);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.92 0 0);
+  --sidebar-accent-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.93 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --skeleton-base: oklch(0.97 0 0);
+  --skeleton-highlight: oklch(0.985 0 0);
+}
+
+/* ⚠️ 全站只有亮色主题(context/theme-provider.tsx 永远从 <html> 移除 `dark`)。
+   这一段 token 覆写之所以保留,是因为 `.dark` 还被当作「局部反色作用域」在用:
+   ComboboxContent 默认 forceDark,把下拉浮层渲染成深色(见 components/ui/combobox.tsx)。
+   除该用途外,不要新增依赖 `.dark` 的样式,也不要写 `dark:` 工具类。 */
+.dark {
+  /* 深色浮层配色:近黑底 + 可读的抬升面。 */
+  --background: oklch(0.185 0 0);
+  --foreground: oklch(0.965 0 0);
+  --card: oklch(0.235 0 0);
+  --card-foreground: oklch(0.965 0 0);
+  --popover: oklch(0.255 0 0);
+  --popover-foreground: oklch(0.965 0 0);
+  --primary: oklch(0.62 0.2 264);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.285 0 0);
+  --secondary-foreground: oklch(0.965 0 0);
+  --muted: oklch(0.255 0 0);
+  --muted-foreground: oklch(0.76 0 0);
+  --accent: oklch(0.325 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.696 0.17 162.48);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.769 0.188 70.08);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.68 0.17 237.323);
+  --info-foreground: oklch(0.145 0 0);
+  --neutral: oklch(0.76 0 0);
+  --neutral-foreground: oklch(0.145 0 0);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.62 0.2 264);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+
+  /* 同八个色相,按深色面重新取步(不是把亮色值反转)。校验命令:
+       node scripts/validate_palette.js "<8 个 hex>" --mode dark --surface "#1e1e1e"
+     当前取值六项检查全 PASS(CVD 相邻 ΔE 8.4 / 正常视觉相邻 ΔE 19.3,对比度全部 ≥3:1)。
+     注:全站只有亮色主题(见上方说明),这一组目前是为将来的深色面备着的。 */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  --sidebar: oklch(0.115 0 0);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.62 0.2 264);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.31 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.68 0 0);
+  --skeleton-base: oklch(0.285 0 0);
+  --skeleton-highlight: oklch(0.39 0 0);
+}
+
+/* ── Dashboard Overview "Console" accent scope (方案 A) ──────────────────
+   A single restrained teal accent + a monochrome teal chart ramp, scoped to
+   the `.dash-console` wrapper so the rest of the app keeps its own palette.
+   The neutrals (card/border/foreground/muted) intentionally reuse the app
+   tokens; only the accent + chart ramp are overridden here. */
+.dash-console {
+  --ov-accent: #0f8a7e;
+  --ov-accent-weak: #d7f0ec;
+  --ov-good: #1f9d55;
+  --ov-warn: #c07d10;
+  --ov-bad: #d64545;
+  --ov-c1: #0f8a7e;
+  --ov-c2: #3a9f93;
+  --ov-c3: #63b3a9;
+  --ov-c4: #8fccc4;
+  --ov-c5: #bfe3de;
+}

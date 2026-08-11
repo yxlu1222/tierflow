@@ -1,0 +1,51 @@
+# Local secrets and environment overrides
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Runtime data and logs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.log
+logs/
+data/
+
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+.cache/
+.gocache/
+.gomodcache/
+
+# Virtual machines, installation media, and diagnostic artifacts
+virtual-machines/
+vm-images/
+vm-artifacts/
+*.vdi
+*.vmdk
+*.vhd
+*.vhdx
+*.ova
+*.ovf
+*.iso
+
+# Downloaded source archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini

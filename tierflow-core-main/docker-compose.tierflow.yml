@@ -1,0 +1,142 @@
+# TierFlow (new-api fork) 部署 —— 默认 MySQL + Redis(生产推荐)
+#
+# 只部署 TierFlow 版 new-api 本体 + 它的 DB/缓存；infer 是独立 GPU 机器，
+# 这里只用一个远程 URL 指过去(INFERENCE_SERVICE_URL)，不假设与 infer 同机。
+#
+# 用法：
+#   1. cp .env.tierflow.example .env
+#      填好 DB_PASSWORD / REDIS_PASSWORD / SESSION_SECRET / INFERENCE_SERVICE_URL / INFERENCE_SERVICE_SECRET
+#      (密码请用字母数字，避免 @ : / 等会破坏 DSN 的字符)
+#   2. docker login ghcr.io        # 私有镜像首次需登录(用户名=GitHub 用户名,密码=有 read:packages 的 PAT)
+#   3. docker compose -f docker-compose.tierflow.yml pull   # 拉 CI 构建好的镜像
+#   4. docker compose -f docker-compose.tierflow.yml up -d
+#   5. 访问 http://<本机>:3000   首次自动建 root/123456，请尽快改
+#
+# 镜像由 .github/workflows/docker-tierflow.yml 在 GitHub Actions 上构建并推到
+# ghcr.io/zer0echo/tierflow-api。想换镜像/tag,在 .env 里设 TIERFLOW_IMAGE。
+# 想本地现场构建(不走 GHCR)：见 tierflow-api 下被注释的 build: 块。
+#
+# 单机/测试想用 SQLite(零外部依赖)：见文件底部注释。
+
+services:
+  tierflow-api:
+    # 默认拉「stable 发布频道」镜像(只在打 v* tag 时移动);TIERFLOW_IMAGE 可在 .env 覆盖。
+    # 后台「检查更新」对比最新 release tag,确认后由 watchtower 拉最新 :stable 重建本容器。
+    image: ${TIERFLOW_IMAGE:-ghcr.io/zer0echo/tierflow-api:stable}
+    # ── 想本地现场构建而不拉 GHCR,改用下面这段(并删掉上面的 image: 行)──────
+    # build:
+    #   context: .
+    #   args:
+    #     GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+    # image: tierflow-api:local
+    container_name: tierflow-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./logs:/app/logs
+      # 运营方可写的静态资源目录(logo / favicon 等)。把文件丢进宿主机
+      # ./data/public/,即可用 /<文件名> 这样的 URL 引用,无需重建镜像。
+      - ./data/public:/app/public
+    command: --log-dir /app/logs
+    environment:
+      - SQL_DSN=root:${DB_PASSWORD}@tcp(mysql:3306)/tierflow
+      - REDIS_CONN_STRING=redis://:${REDIS_PASSWORD}@redis:6379
+      - SESSION_SECRET=${SESSION_SECRET:?set a random string in .env}
+      # ↓ 指向独立的 infer GPU 机器(留空则 auto 路由走 tier3 兜底；也可登录后在系统设置里填)
+      - INFERENCE_SERVICE_URL=${INFERENCE_SERVICE_URL:-}
+      - INFERENCE_SERVICE_SECRET=${INFERENCE_SERVICE_SECRET:-}
+      - INFERENCE_SERVICE_TIMEOUT_MS=${INFERENCE_SERVICE_TIMEOUT_MS:-10000}
+      - TZ=${TZ:-Asia/Shanghai}
+      - ERROR_LOG_ENABLED=true
+      - NODE_NAME=tierflow-api-1
+      # 静态资源目录(对应上面的挂载点);留空则关闭磁盘静态服务,行为同旧版。
+      - STATIC_ROOT=${STATIC_ROOT:-/app/public}
+      # 一键更新：check 取此仓库最新 release tag;perform 触发同网络的 watchtower。
+      - UPDATE_REPO=${UPDATE_REPO:-Zer0Echo/tierflow-core}
+      - UPDATE_GITHUB_TOKEN=${UPDATE_GITHUB_TOKEN:-}
+      - WATCHTOWER_URL=${WATCHTOWER_URL:-http://watchtower:8080/v1/update}
+      - WATCHTOWER_TOKEN=${WATCHTOWER_TOKEN:?set a random WATCHTOWER_TOKEN in .env}
+    labels:
+      # 让 watchtower 只更新本容器(配合 watchtower 的 WATCHTOWER_LABEL_ENABLE=true)
+      - com.centurylinklabs.watchtower.enable=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [tierflow-net]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mysql:
+    image: mysql:8.4
+    container_name: tierflow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: tierflow
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks: [tierflow-net]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  redis:
+    image: redis:7
+    container_name: tierflow-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks: [tierflow-net]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $${REDIS_PASSWORD} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # 一键更新执行器：仅 HTTP 触发模式（不做定时轮询），收到后台「更新」请求才拉新镜像重建
+  # 被打了 com.centurylinklabs.watchtower.enable=true 标签的容器（即 tierflow-api）。
+  # 不对宿主机暴露端口，只在 tierflow-net 内被 tierflow-api 以 http://watchtower:8080 调用。
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    container_name: tierflow-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 私有镜像才需要：把宿主机的 docker 登录凭据挂进来供 watchtower 拉取。
+      # 公有镜像可删除此行。若宿主用的是 credential helper 而非明文 config.json，
+      # 改用 WATCHTOWER_REGISTRY_AUTH 或先 `docker login ghcr.io` 生成明文 token。
+      # - ${DOCKER_CONFIG_DIR:-${HOME}/.docker}/config.json:/config.json:ro
+    environment:
+      - WATCHTOWER_HTTP_API_UPDATE=true
+      - WATCHTOWER_HTTP_API_TOKEN=${WATCHTOWER_TOKEN:?set a random WATCHTOWER_TOKEN in .env}
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_CLEANUP=true
+      # watchtower 1.7.x 默认用 Docker API v1.25，新版 Docker(≥25/API≥1.40)会拒；固定一个受支持的版本。
+      - DOCKER_API_VERSION=${DOCKER_API_VERSION:-1.44}
+      - TZ=${TZ:-Asia/Shanghai}
+    networks: [tierflow-net]
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  tierflow-net:
+    driver: bridge
+
+# ── 想用 SQLite(单机/测试，零外部依赖) ────────────────────────────
+# 把 tierflow-api 改成：删掉 SQL_DSN / REDIS_CONN_STRING / depends_on / networks，
+# 加一行 volume  ./data:/data  和 environment  - SQLITE_PATH=/data/one-api.db，
+# 并删掉 mysql / redis / volumes / networks 这几块即可。

@@ -1,0 +1,107 @@
+# Build & push the TierFlow (new-api fork) image to GHCR only.
+#
+# 与上游继承的 docker-image-*.yml 不同:这里只 push 到 GitHub Container
+# Registry(ghcr.io),不碰 Docker Hub / cosign,所以不需要 DOCKERHUB_* secret。
+# 用内置 GITHUB_TOKEN 即可(自带 packages:write 权限)。
+#
+# 镜像路径: ghcr.io/<owner>/<IMAGE_NAME>  (owner = 运行此 workflow 的仓库 owner,自动小写)
+# 镜像名取仓库变量 vars.IMAGE_NAME,缺省 tierflow-api。
+# 例如在 Zer0Echo/tierflow-core 上运行 => ghcr.io/zer0echo/tierflow-api
+# 下游 fork(如 yuance)设 vars.IMAGE_NAME=yuance-api 即产出独立镜像,避免同 owner 路径冲突。
+#
+# 触发:
+#   - 手动 (Actions 页面点 Run workflow)
+#   - push 到 main 分支                    → 构建并推送到 GHCR
+#   - push 形如 v1.2.3 的 tag             → 构建并推送到 GHCR
+#   - 针对 main / develop 的 PR            → 只构建不推送(验证 Dockerfile 能否构建)
+#     (develop 不再随 push 推镜像:没人拉 :develop,且会污染 :latest;PR 仍做构建校验)
+# 想换触发分支,改下面的 branches 列表即可。
+
+name: Build & push TierFlow image (GHCR)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+      - develop
+
+# 同一分支新 push 时取消正在跑的旧构建
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # GHCR 要求镜像路径全小写;owner 可能含大写(Zer0Echo),这里统一转小写。
+      # 镜像名取 vars.IMAGE_NAME(缺省 tierflow-api),使下游 fork 能产出独立镜像。
+      - name: Compute image name
+        env:
+          IMAGE_NAME: ${{ vars.IMAGE_NAME || 'tierflow-api' }}
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${IMAGE_NAME}" >> "$GITHUB_ENV"
+
+      # 版本号注入优先级:v* tag 构建强制用 tag 名(根治「VERSION 文件忘更新
+      # → 镜像自报旧版本 → 后台自更新轮询永远等不到版本变化」);非 tag 构建
+      # 用仓库 VERSION 文件,文件为空时兜底生成 日期-sha。
+      - name: Write VERSION
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "$GITHUB_REF_NAME" > VERSION
+          elif [ ! -s VERSION ]; then
+            echo "tierflow-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)" > VERSION
+          fi
+          echo "Building VERSION=$(cat VERSION)"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'   # PR 只构建不推送,无需登录
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+            type=ref,event=branch
+            type=ref,event=tag
+            # 生产「发布频道」：仅在打 v* tag 时把 :stable 指向该发布。
+            # 部署机跑 :stable，后台「检查更新」→ watchtower 拉最新 :stable 重建。
+            type=raw,value=stable,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # 部署目标一般是 linux/amd64;若要 arm64,加 linux/arm64 并启用 QEMU。
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}   # PR 上只构建验证,不推送
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GOPROXY=${{ vars.GOPROXY || 'https://goproxy.cn,direct' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

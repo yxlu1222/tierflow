@@ -1,0 +1,111 @@
+/*
+Copyright (C) 2023-2026 TierFlow
+*/
+/**
+ * Shared constants for usage logs feature
+ */
+import type { LogStatistics } from './types'
+
+// ============================================================================
+// Default Values
+// ============================================================================
+
+/**
+ * Default log statistics when no data is available
+ */
+export const DEFAULT_LOG_STATS: LogStatistics = {
+  quota: 0,
+  rpm: 0,
+  tpm: 0,
+}
+
+/**
+ * Default empty logs data
+ */
+export const DEFAULT_LOGS_DATA = {
+  items: [],
+  total: 0,
+}
+
+// ============================================================================
+// Log Type Enum
+// ============================================================================
+
+/**
+ * Log type enum values
+ */
+export const LOG_TYPE_ENUM = {
+  UNKNOWN: 0,
+  TOPUP: 1,
+  CONSUME: 2,
+  MANAGE: 3,
+  SYSTEM: 4,
+  ERROR: 5,
+  REFUND: 6,
+} as const
+
+/**
+ * The log list/stat backend uses type=0 as the "all types" sentinel.
+ * Row rendering still displays records with type=0 as "Unknown".
+ */
+export const LOG_TYPE_ALL_VALUE = '0' as const
+
+// ============================================================================
+// Time Range Presets
+// ============================================================================
+
+/**
+ * Quick time range presets for filter dialog
+ */
+export const TIME_RANGE_PRESETS = [
+  { days: 1, label: '24 Hours' },
+  { days: 7, label: '7 Days' },
+  { days: 14, label: '14 Days' },
+  { days: 30, label: '30 Days' },
+] as const
+
+// ============================================================================
+// Common Logs Configuration
+// ============================================================================
+
+/**
+ * Log types configuration for filtering and display
+ */
+export const LOG_TYPES = [
+  { value: 0, label: 'Unknown', color: 'default' },
+  { value: 1, label: 'Top-up', color: 'cyan' },
+  { value: 2, label: 'Consume', color: 'green' },
+  { value: 3, label: 'Manage', color: 'orange' },
+  { value: 4, label: 'System', color: 'purple' },
+  { value: 5, label: 'Error', color: 'red' },
+  { value: 6, label: 'Refund', color: 'blue' },
+] as const
+
+/**
+ * Log types for DataTableToolbar filters (single select mode)
+ * Backend treats type=0 as "all logs" in list/stat endpoints, so the filter
+ * must not expose the display-only "Unknown" label for that value.
+ */
+export const LOG_TYPE_FILTERS = [
+  { label: 'All Types', value: LOG_TYPE_ALL_VALUE },
+  ...LOG_TYPES.filter((type) => type.value !== LOG_TYPE_ENUM.UNKNOWN).map(
+    (type) => ({
+      label: type.label,
+      value: String(type.value),
+    })
+  ),
+] as const
+
+// ============================================================================
+// Log Type Checkers (Constants)
+// ============================================================================
+
+/**
+ * Log types that are displayable (have detailed info)
+ */
+export const DISPLAYABLE_LOG_TYPES = [0, 2, 5, 6] as const
+
+/**
+ * Log types that show timing info
+ */
+export const TIMING_LOG_TYPES = [2, 5] as const

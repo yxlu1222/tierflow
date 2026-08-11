@@ -1,0 +1,63 @@
+/*
+Copyright (C) 2023-2026 TierFlow
+*/
+import { DescriptionDialog } from './dialogs/description-dialog'
+import { MissingModelsDialog } from './dialogs/missing-models-dialog'
+import { ModelMutateDialog } from './dialogs/model-mutate-dialog'
+import { PrefillGroupManagement } from './dialogs/prefill-group-management'
+import { VendorMutateDialog } from './dialogs/vendor-mutate-dialog'
+import { useModels } from './models-provider'
+
+export function ModelsDialogs() {
+  const {
+    open,
+    setOpen,
+    currentRow,
+    currentVendor,
+    descriptionData,
+    setDescriptionData,
+  } = useModels()
+
+  return (
+    <>
+      {/* Model Create/Update Dialog */}
+      <ModelMutateDialog
+        open={open === 'create-model' || open === 'update-model'}
+        onOpenChange={(v) => !v && setOpen(null)}
+        currentRow={currentRow}
+      />
+
+      {/* Vendor Create/Update Dialog */}
+      <VendorMutateDialog
+        open={open === 'create-vendor' || open === 'update-vendor'}
+        onOpenChange={(v) => !v && setOpen(null)}
+        currentVendor={open === 'update-vendor' ? currentVendor : null}
+      />
+
+      {/* Missing Models Dialog */}
+      <MissingModelsDialog
+        open={open === 'missing-models'}
+        onOpenChange={(v) => !v && setOpen(null)}
+      />
+
+      {/* Prefill Groups Management */}
+      <PrefillGroupManagement
+        open={open === 'prefill-groups'}
+        onOpenChange={(v) => !v && setOpen(null)}
+      />
+
+      {/* Description Dialog */}
+      <DescriptionDialog
+        open={open === 'description'}
+        onOpenChange={(v) => {
+          if (!v) {
+            setOpen(null)
+            setDescriptionData(null)
+          }
+        }}
+        modelName={descriptionData?.modelName || ''}
+        description={descriptionData?.description || ''}
+      />
+    </>
+  )
+}

@@ -1,0 +1,48 @@
+/* MiSans 字体定义 — 由 index.html 通过 <link rel="stylesheet" href="/fonts/misans.css">
+ * 在运行时加载(public 静态资源,不经打包器处理),相对 url 以 /fonts/ 为基准解析。
+ * 字族在 theme.css 的 --font-sans 中以 'MiSans' 打头(参考 tierflow-zh)。 */
+
+/* ========== Light (300) ========== */
+@font-face {
+  font-family: 'MiSans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('misans/MiSans/woff2/MiSans-Light.woff2') format('woff2');
+}
+
+/* ========== Normal/Regular (400) ========== */
+@font-face {
+  font-family: 'MiSans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('misans/MiSans/woff2/MiSans-Normal.woff2') format('woff2');
+}
+
+/* ========== Medium (500) ========== */
+@font-face {
+  font-family: 'MiSans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('misans/MiSans/woff2/MiSans-Medium.woff2') format('woff2');
+}
+
+/* ========== Demibold/Semibold (600) ========== */
+@font-face {
+  font-family: 'MiSans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('misans/MiSans/woff2/MiSans-Demibold.woff2') format('woff2');
+}
+
+/* ========== Bold (700) ========== */
+@font-face {
+  font-family: 'MiSans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('misans/MiSans/woff2/MiSans-Bold.woff2') format('woff2');
+}
