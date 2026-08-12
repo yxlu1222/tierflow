@@ -1,109 +1,23 @@
 /*
 Copyright (C) 2023-2026 TierFlow
 */
-import axios, { type AxiosRequestConfig } from 'axios'
-import i18next, { t } from 'i18next'
-import { toast } from 'sonner'
-import { useAuthStore } from '@/stores/auth-store'
+import i18next from 'i18next'
+import { getCommonAuthHeaders } from '@/lib/auth-session'
+import { api } from '@/lib/http-client'
 
-declare module 'axios' {
-  export interface AxiosRequestConfig {
-    skipBusinessError?: boolean
-    skipErrorHandler?: boolean
-    disableDuplicate?: boolean
-  }
-}
-
-export type ApiRequestConfig = AxiosRequestConfig
-
-// ============================================================================
-// Axios Instance Configuration
-// ============================================================================
-
-// Base URL: empty string for same-origin API requests
-const baseURL = ''
-
-// Create axios instance with default config
-export const api = axios.create({
-  baseURL,
-  withCredentials: true, // Include cookies in cross-origin requests
-  headers: {
-    'Cache-Control': 'no-store', // Prevent caching
-  },
-})
-
-// ============================================================================
-// Request Deduplication
-// ============================================================================
-
-// Deduplicate concurrent GET requests to the same URL
-// Prevents multiple identical requests from being sent simultaneously
-const inFlightGet = new Map<string, Promise<unknown>>()
-const originalGet = api.get.bind(api)
-
-api.get = ((url: string, config: ApiRequestConfig = {}) => {
-  const disableDuplicate = config.disableDuplicate
-  if (disableDuplicate) return originalGet(url, config)
-
-  const params = config.params ? JSON.stringify(config.params) : '{}'
-  const key = `${url}?${params}`
-
-  // Return existing in-flight request if available
-  if (inFlightGet.has(key)) return inFlightGet.get(key)!
-
-  // Create new request and clean up after completion
-  const req = originalGet(url, config).finally(() => inFlightGet.delete(key))
-  inFlightGet.set(key, req)
-  return req
-}) as typeof api.get
-
-// ============================================================================
-// Response Interceptor
-// ============================================================================
-
-// Handle business logic errors and HTTP errors globally
-api.interceptors.response.use(
-  (response) => {
-    const skipBusiness = response.config.skipBusinessError
-
-    // Unified business response format: { success, message, data }
-    if (
-      !skipBusiness &&
-      response &&
-      response.data &&
-      typeof response.data.success === 'boolean'
-    ) {
-      if (!response.data.success) {
-        // Show error toast for business failures
-        const msg = response.data.message || t('Request failed')
-        toast.error(msg)
-      }
-    }
-    return response
-  },
-  (error) => {
-    const skip = error?.config?.skipErrorHandler
-    const status = error?.response?.status
-
-    if (status === 401) {
-      try {
-        useAuthStore.getState().auth.reset()
-      } catch {
-        /* empty */
-      }
-
-      if (!skip) {
-        toast.error(t('Session expired!'))
-      }
-    } else if (!skip) {
-      // Other errors: show error message from response or default
-      const msg =
-        error?.response?.data?.message || error?.message || t('Request failed')
-      toast.error(msg)
-    }
-    return Promise.reject(error)
-  }
-)
+export {
+  applyAuthBundle,
+  applyAuthRotation,
+  bootstrapAuthentication,
+  clearAuthenticatedClientState,
+  clearAuthentication,
+  isAuthBundle,
+  refreshAuthentication,
+  AuthRotationError,
+} from '@/lib/auth-session'
+export type { RefreshOutcome } from '@/lib/auth-session'
+export { api }
+export type { ApiRequestConfig } from '@/lib/http-client'
 
 // ============================================================================
 // Common Headers Utility
@@ -112,17 +26,6 @@ api.interceptors.response.use(
 /**
  * Get user ID from localStorage
  */
-function getUserId(): string | null {
-  try {
-    if (typeof window !== 'undefined') {
-      return window.localStorage.getItem('uid')
-    }
-  } catch {
-    /* empty */
-  }
-  return null
-}
-
 /**
  * Current UI language, for the `Accept-Language` header.
  *
@@ -144,33 +47,13 @@ export function getCommonHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept-Language': getLanguageHeader(),
+    ...getCommonAuthHeaders(),
   }
-
-  const uid = getUserId()
-  if (uid) {
-    headers['TF-User'] = uid
-  }
-
   return headers
 }
 
-// ============================================================================
-// Request Interceptor
-// ============================================================================
-
-// Attach user ID and UI language headers for all requests
 api.interceptors.request.use((config) => {
-  const headers = config.headers as Record<string, string>
-
-  const uid = getUserId()
-  if (uid) {
-    // Custom header for user identification
-    headers['TF-User'] = uid
-  }
-
-  // Read per-request: the user can switch language without a reload.
-  headers['Accept-Language'] = getLanguageHeader()
-
+  config.headers['Accept-Language'] = getLanguageHeader()
   return config
 })
 

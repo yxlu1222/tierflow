@@ -65,6 +65,8 @@ export default defineConfig(({ envMode }) => {
     },
     server: {
       host: '0.0.0.0',
+      historyApiFallback: true,
+      htmlFallback: 'index',
       // Dev server on 5173 by default so it doesn't collide with the Go backend
       // on :3000 (which the /api,/mj,/pg proxy targets). Override with PORT=…
       port: Number(process.env.PORT) || 5173,

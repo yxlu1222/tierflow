@@ -12,7 +12,6 @@ import {
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import i18next from 'i18next'
 import { toast } from 'sonner'
-import { useAuthStore } from '@/stores/auth-store'
 import { getStatus } from '@/lib/api'
 import { DEFAULT_SYSTEM_NAME } from '@/lib/constants'
 import { installBuildMetadata } from '@/lib/build-metadata'
@@ -66,12 +65,6 @@ const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error) => {
       if (error instanceof AxiosError) {
-        if (error.response?.status === 401) {
-          toast.error(i18next.t('Session expired!'))
-          useAuthStore.getState().auth.reset()
-          const redirect = `${router.history.location.href}`
-          router.navigate({ to: '/sign-in', search: { redirect } })
-        }
         if (error.response?.status === 500) {
           toast.error(i18next.t('Internal Server Error!'))
           router.navigate({ to: '/500' })

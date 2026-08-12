@@ -20,6 +20,7 @@ import { saveAffiliateCode } from '@/features/auth/lib/storage'
 import { GeneralError } from '@/features/errors/general-error'
 import { NotFoundError } from '@/features/errors/not-found-error'
 import { getSetupStatus } from '@/features/setup/api'
+import { bootstrapAuthentication } from '@/lib/api'
 
 function RootComponent() {
   // Load system configuration (logo, system name, etc.) from backend
@@ -99,30 +100,30 @@ export const Route = createRootRouteWithContext<{
 
     const needsSetupCheck =
       !setupStatusChecked && !pathname.startsWith('/setup')
+    const authBootstrap = bootstrapAuthentication()
 
-    // 用户信息已通过 auth-store 从 localStorage 恢复
-    // 如果 auth.user 存在，说明用户已登录（有缓存的用户数据）
-    // 如果 auth.user 为 null，说明用户未登录，直接让 _authenticated 路由处理重定向
-    // 不再调用 getSelf() API，避免不必要的网络请求和等待
-
-    // 只检查 setup 状态（如果需要）
+    // Setup 检查与认证恢复并行执行，刷新页面时会使用 HttpOnly Cookie
+    // 换取新的短期访问令牌，访问令牌本身不会写入 localStorage。
     if (needsSetupCheck) {
-      const status = await getSetupStatus().catch((error) => {
-        if (import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
-          console.warn('[root.beforeLoad] setup status check failed', error)
-        }
-        return null
-      })
+      const [status] = await Promise.all([
+        getSetupStatus().catch((error) => {
+          if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
+            console.warn('[root.beforeLoad] setup status check failed', error)
+          }
+          return null
+        }),
+        authBootstrap,
+      ])
 
       if (status?.success && status.data && !status.data.status) {
         throw redirect({ to: '/setup' })
       }
       setupStatusChecked = true
       setSetupStatusCache(true)
+    } else {
+      await authBootstrap
     }
-    // 用户认证状态完全依赖 localStorage 缓存
-    // 如果用户有有效 session 但 localStorage 被清空，会被重定向到登录页重新登录
   },
   component: RootComponent,
   notFoundComponent: NotFoundError,
