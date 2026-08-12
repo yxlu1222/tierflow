@@ -40,8 +40,7 @@ export function ProfileHero({ profile, loading }: ProfileHeroProps) {
 
   return (
     <section className='bg-card relative overflow-hidden rounded-2xl border p-6 shadow-xs sm:p-7'>
-      {/* Subtle brand glow, top-left — theme-aware via the primary token
-          (same treatment as the Billing / API Keys heroes). */}
+      {/* Subtle brand glow, top-left — theme-aware via the primary token. */}
       <div
         aria-hidden
         className='pointer-events-none absolute inset-0'

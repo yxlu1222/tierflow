@@ -2,16 +2,8 @@
 Copyright (C) 2023-2026 TierFlow
 */
 import { type TFunction } from 'i18next'
-import {
-  Box,
-  CreditCard,
-  Settings,
-  Shield,
-  ShieldAlert,
-  Wrench,
-} from 'lucide-react'
+import { Box, Settings, Shield, ShieldAlert, Wrench } from 'lucide-react'
 import { getAuthSectionNavItems } from '@/features/system-settings/auth/section-registry.tsx'
-import { getBillingSectionNavItems } from '@/features/system-settings/billing/section-registry.tsx'
 import { getModelsSectionNavItems } from '@/features/system-settings/models/section-registry.tsx'
 import { getOperationsSectionNavItems } from '@/features/system-settings/operations/section-registry.tsx'
 import { getSecuritySectionNavItems } from '@/features/system-settings/security/section-registry.tsx'
@@ -42,12 +34,7 @@ function getSystemSettingsNavGroups(t: TFunction): NavGroup[] {
           items: getAuthSectionNavItems(t),
         },
         {
-          title: t('Billing & Payment'),
-          icon: CreditCard,
-          items: getBillingSectionNavItems(t),
-        },
-        {
-          title: t('Models & Routing'),
+          title: t('Inference Services'),
           icon: Box,
           items: getModelsSectionNavItems(t),
         },
@@ -57,7 +44,7 @@ function getSystemSettingsNavGroups(t: TFunction): NavGroup[] {
           items: getSecuritySectionNavItems(t),
         },
         {
-          title: t('Operations'),
+          title: t('Device Operations'),
           icon: Wrench,
           items: getOperationsSectionNavItems(t),
         },
@@ -78,7 +65,7 @@ export const SYSTEM_SETTINGS_VIEW: SidebarView = {
   pathPattern: /^\/system-settings(\/|$)/,
   parent: {
     to: '/usage',
-    label: 'Back to Dashboard',
+    label: 'Back to Appliance Home',
   },
   getNavGroups: getSystemSettingsNavGroups,
 }

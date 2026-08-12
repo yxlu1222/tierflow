@@ -5,20 +5,28 @@ import { useEffect, useState } from 'react'
 import { useForm, type SubmitErrorHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, KeyRound, Settings2, WalletCards } from 'lucide-react'
+import { ChevronDown, Gauge, KeyRound, Settings2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth-store'
 import { getUserModels, getUserGroups } from '@/lib/api'
 import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { useStatus } from '@/hooks/use-status'
-import { useAuthStore } from '@/stores/auth-store'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Form,
   FormControl,
@@ -29,14 +37,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { DateTimePicker } from '@/components/datetime-picker'
@@ -206,7 +206,9 @@ export function ApiKeysMutateDrawer({
   const { meta: currencyMeta } = getCurrencyDisplay()
   const currencyLabel = getCurrencyLabel()
   const tokensOnly = currencyMeta.kind === 'tokens'
-  const quotaLabel = t('Quota ({{currency}})', { currency: currencyLabel })
+  const quotaLabel = t('Inference quota ({{currency}})', {
+    currency: currencyLabel,
+  })
   const quotaPlaceholder = tokensOnly
     ? t('Enter quota in tokens')
     : t('Enter quota in {{currency}}', { currency: currencyLabel })
@@ -223,9 +225,7 @@ export function ApiKeysMutateDrawer({
         }
       }}
     >
-      <DialogContent
-        className='flex max-h-[88vh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[620px]'
-      >
+      <DialogContent className='flex max-h-[88vh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-[620px]'>
         <DialogHeader className={sideDrawerHeaderClassName()}>
           <DialogTitle>
             {isUpdate ? t('Update API Key') : t('Create API Key')}
@@ -401,9 +401,9 @@ export function ApiKeysMutateDrawer({
 
             <SideDrawerSection>
               <SideDrawerSectionHeader
-                title={t('Quota Settings')}
-                description={t('Set quota amount and limits')}
-                icon={<WalletCards className='size-4' />}
+                title={t('Inference Limit')}
+                description={t('Set the maximum inference usage for this key')}
+                icon={<Gauge className='size-4' />}
               />
               {!unlimitedQuota && (
                 <FormField
@@ -443,10 +443,12 @@ export function ApiKeysMutateDrawer({
                   <FormItem className={sideDrawerSwitchItemClassName()}>
                     <div className='flex flex-col gap-0.5'>
                       <FormLabel className='text-sm'>
-                        {t('Unlimited Quota')}
+                        {t('Unlimited Inference')}
                       </FormLabel>
                       <FormDescription className='text-xs'>
-                        {t('Enable unlimited quota for this API key')}
+                        {t(
+                          'Allow this API key to make unlimited inference calls'
+                        )}
                       </FormDescription>
                     </div>
                     <FormControl>

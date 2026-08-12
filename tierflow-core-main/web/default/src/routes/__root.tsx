@@ -10,6 +10,10 @@ import {
 } from '@tanstack/react-router'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import {
+  isBillingSettingsPath,
+  isCommercialPathDisabled,
+} from '@/lib/appliance-mode'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { Toaster } from '@/components/ui/sonner'
 import { saveAffiliateCode } from '@/features/auth/lib/storage'
@@ -80,6 +84,19 @@ export const Route = createRootRouteWithContext<{
   // 应用初始化与路由解析前统一校验会话
   beforeLoad: async ({ location }) => {
     const pathname = location?.pathname || ''
+
+    if (isCommercialPathDisabled(pathname)) {
+      throw redirect({ to: '/usage', replace: true })
+    }
+
+    if (isBillingSettingsPath(pathname)) {
+      throw redirect({
+        to: '/system-settings/models/$section',
+        params: { section: 'inference' },
+        replace: true,
+      })
+    }
+
     const needsSetupCheck =
       !setupStatusChecked && !pathname.startsWith('/setup')
 

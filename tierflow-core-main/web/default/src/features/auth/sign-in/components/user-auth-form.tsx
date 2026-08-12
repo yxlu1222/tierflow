@@ -110,14 +110,6 @@ export function UserAuthForm({
     passkeyLoginEnabled || hasWeChatLogin || hasOAuthLogin
 
   useEffect(() => {
-    if (requiresLegalConsent) {
-      setAgreedToLegal(false)
-    } else {
-      setAgreedToLegal(true)
-    }
-  }, [requiresLegalConsent])
-
-  useEffect(() => {
     detectPasskeySupport()
       .then(setPasskeySupported)
       .catch(() => setPasskeySupported(false))
@@ -336,18 +328,20 @@ export function UserAuthForm({
       >
         {passwordLoginEnabled && (
           <>
-            {/* Email / Username Field */}
+            {/* Appliance account field */}
             <FormField
               control={form.control}
               name='username'
               render={({ field }) => (
                 <FormItem className={authFieldClass}>
-                  <FormLabel className={authLabelClass}>{t('Email')}</FormLabel>
+                  <FormLabel className={authLabelClass}>
+                    {t('Appliance account')}
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type='text'
                       autoComplete='username'
-                      placeholder={t('Enter your email')}
+                      placeholder={t('Enter your appliance account')}
                       className={authInputClass}
                       {...field}
                     />

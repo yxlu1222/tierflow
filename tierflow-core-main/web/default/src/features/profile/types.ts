@@ -30,7 +30,7 @@ export interface UserProfile {
   email?: string
   /** User group */
   group: string
-  /** Current quota balance */
+  /** Current inference quota */
   quota: number
   /** Total used quota */
   used_quota: number

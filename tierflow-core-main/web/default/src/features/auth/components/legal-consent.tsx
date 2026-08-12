@@ -37,21 +37,11 @@ export function LegalConsent({
       >
         <span>
           {t('I have read and agree to the')}{' '}
-          <a
-            href='/user-agreement'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary hover:underline'
-          >
+          <a href='/user-agreement' className='text-primary hover:underline'>
             {t('User Agreement')}
           </a>{' '}
           {t('and')}{' '}
-          <a
-            href='/privacy-policy'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-primary hover:underline'
-          >
+          <a href='/privacy-policy' className='text-primary hover:underline'>
             {t('Privacy Policy')}
           </a>
           .

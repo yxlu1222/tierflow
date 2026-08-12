@@ -5,7 +5,6 @@ import { type ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
   Tooltip,
@@ -34,11 +33,6 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
       cell: ({ row }) => (
         <div className='flex max-w-[240px] items-center gap-1.5'>
           <span className='truncate'>{row.getValue('name')}</span>
-          {(row.original.user_subscription_id ?? 0) > 0 && (
-            <Badge variant='secondary' className='shrink-0'>
-              {t('Plan Key')}
-            </Badge>
-          )}
         </div>
       ),
       meta: { label: t('Name'), mobileTitle: true },
@@ -54,7 +48,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
     {
       id: 'quota',
       accessorKey: 'remain_quota',
-      header: t('Quota'),
+      header: t('Inference Quota'),
       enableSorting: false,
       cell: ({ row }) => {
         const apiKey = row.original
@@ -96,7 +90,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
           </Tooltip>
         )
       },
-      meta: { label: t('Quota') },
+      meta: { label: t('Inference Quota') },
     },
     {
       accessorKey: 'status',

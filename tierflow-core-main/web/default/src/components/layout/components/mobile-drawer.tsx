@@ -2,7 +2,7 @@
 Copyright (C) 2023-2026 TierFlow
 */
 import { Link } from '@tanstack/react-router'
-import { X, User, Wallet, LogOut } from 'lucide-react'
+import { X, User, LogOut } from 'lucide-react'
 import { AnimatePresence, motion, type Variants } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import type { AuthUser } from '@/stores/auth-store'
@@ -103,15 +103,6 @@ function MobileUserProfile({ user, onNavigate }: MobileUserProfileProps) {
         >
           <User className='size-4' />
           {t('Profile')}
-        </Link>
-
-        <Link
-          to='/billing'
-          onClick={onNavigate}
-          className='text-primary/60 hover:text-primary/80 border-border flex items-center gap-2.5 border-b p-2.5 transition-colors'
-        >
-          <Wallet className='size-4' />
-          {t('Bills')}
         </Link>
 
         {/* Sign out - consistent style */}

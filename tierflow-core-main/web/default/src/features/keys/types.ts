@@ -30,7 +30,7 @@ export const apiKeySchema = z.object({
   model_limits_enabled: z.boolean(),
   model_limits: z.string().nullish().default(''),
   allow_ips: z.string().nullish().default(''),
-  // >0 = 套餐专用 Key(绑定订阅,只读,随订阅生命周期管理)
+  // Upstream compatibility field. Appliance mode does not expose subscriptions.
   user_subscription_id: z.number().nullish().default(0),
 })
 
@@ -86,8 +86,4 @@ export interface ApiKeyFormData {
 // ============================================================================
 
 export type ApiKeysDialogType =
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'batch-delete'
-  | 'detail'
+  'create' | 'update' | 'delete' | 'batch-delete' | 'detail'

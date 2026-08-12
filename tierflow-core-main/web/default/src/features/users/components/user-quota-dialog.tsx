@@ -47,12 +47,12 @@ export function UserQuotaDialog(props: UserQuotaDialogProps) {
     const val = quotaValue
     switch (mode) {
       case 'add':
-        return `${t('Current quota')}: ${formatQuota(current)}  +${formatQuota(val)} = ${formatQuota(current + val)}`
+        return `${t('Current inference quota')}: ${formatQuota(current)}  +${formatQuota(val)} = ${formatQuota(current + val)}`
       case 'subtract':
-        return `${t('Current quota')}: ${formatQuota(current)}  -${formatQuota(val)} = ${formatQuota(current - val)}`
+        return `${t('Current inference quota')}: ${formatQuota(current)}  -${formatQuota(val)} = ${formatQuota(current - val)}`
       case 'override': {
         const overrideQuota = parseQuotaFromDollars(amountValue)
-        return `${t('Current quota')}: ${formatQuota(current)} → ${formatQuota(overrideQuota)}`
+        return `${t('Current inference quota')}: ${formatQuota(current)} → ${formatQuota(overrideQuota)}`
       }
       default:
         return ''
@@ -74,16 +74,18 @@ export function UserQuotaDialog(props: UserQuotaDialogProps) {
         value: mode === 'override' ? value : Math.abs(value),
       })
       if (result.success) {
-        toast.success(t('Quota adjusted successfully'))
+        toast.success(t('Inference quota adjusted successfully'))
         setAmount('')
         setMode('add')
         props.onOpenChange(false)
         props.onSuccess()
       } else {
-        toast.error(result.message || t('Failed to adjust quota'))
+        toast.error(result.message || t('Failed to adjust inference quota'))
       }
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : t('Failed to adjust quota'))
+      toast.error(
+        e instanceof Error ? e.message : t('Failed to adjust inference quota')
+      )
     } finally {
       setLoading(false)
     }
@@ -103,7 +105,7 @@ export function UserQuotaDialog(props: UserQuotaDialogProps) {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('Adjust Quota')}</DialogTitle>
+          <DialogTitle>{t('Adjust Inference Quota')}</DialogTitle>
           <DialogDescription>
             {t('Select an operation mode and enter the amount')}
           </DialogDescription>

@@ -2,6 +2,8 @@
 Copyright (C) 2023-2026 TierFlow
 */
 import { Link } from '@tanstack/react-router'
+import { Cpu } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -18,6 +20,7 @@ import { HeaderUser } from './header-user'
  * 导航交给固定侧边栏。
  */
 export function AppHeader() {
+  const { t } = useTranslation()
   const notifications = useNotifications()
   const {
     systemName,
@@ -30,7 +33,7 @@ export function AppHeader() {
     <header className='bg-background border-border/50 sticky top-0 z-40 h-[var(--app-header-height,4rem)] w-full shrink-0 border-b'>
       <nav className='flex h-full items-center px-4 md:px-6'>
         {/* Left: 品牌 */}
-        <Link to='/' className='group flex shrink-0 items-center gap-2.5'>
+        <Link to='/usage' className='group flex shrink-0 items-center gap-2.5'>
           <div className='flex size-8 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
             {loading ? (
               <Skeleton className='size-full rounded-lg' />
@@ -45,6 +48,10 @@ export function AppHeader() {
           </div>
           <span className='text-lg font-semibold tracking-tight'>
             {loading ? <Skeleton className='h-4 w-16' /> : systemName}
+          </span>
+          <span className='hidden items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50/80 px-2.5 py-1 text-[11px] font-medium text-blue-700 md:inline-flex'>
+            <Cpu className='size-3.5' />
+            {t('Inference Appliance')}
           </span>
         </Link>
 

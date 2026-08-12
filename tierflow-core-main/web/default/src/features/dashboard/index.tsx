@@ -34,12 +34,6 @@ const LazyUserCharts = lazy(() =>
   }))
 )
 
-const LazyFinanceDashboard = lazy(() =>
-  import('./components/finance/finance-dashboard').then((m) => ({
-    default: m.FinanceDashboard,
-  }))
-)
-
 function ChartFallback() {
   return (
     <div className='overflow-hidden rounded-lg border'>
@@ -60,9 +54,6 @@ const SECTION_META: Record<DashboardSectionId, { titleKey: string }> = {
   },
   users: {
     titleKey: 'User Analytics',
-  },
-  finance: {
-    titleKey: 'Finance',
   },
 }
 
@@ -87,7 +78,9 @@ export function Dashboard() {
 
   return (
     <SectionPageLayout scrollHeader>
-      <SectionPageLayout.Title>{t('Analytics')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>
+        {t('Inference Analytics')}
+      </SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <div className='space-y-4 sm:space-y-5'>
           <div className='flex flex-wrap items-center justify-between gap-1.5 sm:gap-2'>
@@ -112,13 +105,6 @@ export function Dashboard() {
             <FadeIn>
               <Suspense fallback={<ChartFallback />}>
                 <LazyUserCharts />
-              </Suspense>
-            </FadeIn>
-          )}
-          {activeSection === 'finance' && (
-            <FadeIn>
-              <Suspense fallback={<ChartFallback />}>
-                <LazyFinanceDashboard />
               </Suspense>
             </FadeIn>
           )}

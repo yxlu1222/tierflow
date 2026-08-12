@@ -68,6 +68,9 @@ export function NotificationSettingsCard({
       const parsed = parseUserSettings(profile.setting)
       const thresholdQuota =
         parsed.quota_warning_threshold ?? DEFAULT_QUOTA_WARNING_THRESHOLD
+      // The profile is loaded asynchronously; synchronize the editable form
+      // when the persisted settings arrive.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setThresholdInput(String(quotaUnitsToDollars(thresholdQuota)))
       setSettings({
         // Email is the only supported notification method; other transports
@@ -111,7 +114,7 @@ export function NotificationSettingsCard({
   return (
     <SettingsCard
       title={t('Notifications')}
-      description={t('Configure how you receive quota alerts')}
+      description={t('Configure inference quota alerts for this appliance')}
       action={
         <Button size='lg' onClick={handleSave} disabled={loading}>
           {loading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
@@ -156,7 +159,7 @@ export function NotificationSettingsCard({
             htmlFor='threshold'
             className='text-foreground text-[15px] font-medium'
           >
-            {t('Quota Warning Threshold')}
+            {t('Inference Quota Warning Threshold')}
           </Label>
           <div>
             <div className='relative'>
@@ -184,7 +187,9 @@ export function NotificationSettingsCard({
               </span>
             </div>
             <p className='text-muted-foreground mt-1.5 text-sm'>
-              {t('Get notified when your balance falls below this amount')}
+              {t(
+                'Get notified when your remaining inference quota falls below this amount'
+              )}
             </p>
           </div>
         </div>

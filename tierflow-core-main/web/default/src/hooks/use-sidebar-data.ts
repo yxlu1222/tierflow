@@ -72,8 +72,8 @@ export function useSidebarData(): SidebarData {
       // 管理员区:原 admin 单组按功能域拆为三组,统一由 adminOnly 门控
       // (role >= ADMIN)。见 use-sidebar-view.ts 的角色过滤。
       {
-        id: 'models-routing',
-        title: t('Models & Routing'),
+        id: 'inference-services',
+        title: t('Inference Services'),
         icon: Boxes,
         adminOnly: true,
         items: [
@@ -100,14 +100,14 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'users-billing',
-        title: t('Users & Billing'),
+        id: 'access-audit',
+        title: t('Access & Audit'),
         icon: Users,
         adminOnly: true,
         items: [
           {
-            // 平台维度的用户分析 / 财务;用户看自己的用量在 /usage
-            title: t('Analytics'),
+            // 管理员查看全局推理分析;用户在 /usage 查看自己的调用活动。
+            title: t('Inference Analytics'),
             url: '/dashboard/usage',
             activeUrls: ['/dashboard'],
             icon: BarChart3,
@@ -120,8 +120,8 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: 'ops-system',
-        title: t('Operations & System'),
+        id: 'device-operations',
+        title: t('Device Operations'),
         icon: Wrench,
         adminOnly: true,
         items: [
@@ -141,8 +141,8 @@ export function useSidebarData(): SidebarData {
               ]
             : []),
           {
-            title: t('System Settings'),
-            url: '/system-settings/site',
+            title: t('Appliance Settings'),
+            url: '/system-settings/models/inference',
             activeUrls: ['/system-settings'],
             icon: Settings,
           },

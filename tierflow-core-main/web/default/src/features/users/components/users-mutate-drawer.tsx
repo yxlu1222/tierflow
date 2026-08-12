@@ -300,10 +300,12 @@ export function UsersMutateDrawer({
                 />
               </SideDrawerSection>
 
-              {/* Group & Quota Settings (Update only) */}
+              {/* Group and inference quota settings (update only). */}
               {isUpdate && (
                 <SideDrawerSection>
-                  <h3 className='text-sm font-medium'>{t('Group & Quota')}</h3>
+                  <h3 className='text-sm font-medium'>
+                    {t('Group & Inference Quota')}
+                  </h3>
 
                   <FormField
                     control={form.control}
@@ -347,7 +349,7 @@ export function UsersMutateDrawer({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          {t('Remaining Quota ({{currency}})', {
+                          {t('Remaining Inference Quota ({{currency}})', {
                             currency: currencyLabel,
                           })}
                         </FormLabel>
@@ -369,7 +371,7 @@ export function UsersMutateDrawer({
                             onClick={() => setQuotaDialogOpen(true)}
                           >
                             <Pencil className='mr-1 h-4 w-4' />
-                            {t('Adjust Quota')}
+                            {t('Adjust Inference Quota')}
                           </Button>
                         </div>
                         <FormDescription>

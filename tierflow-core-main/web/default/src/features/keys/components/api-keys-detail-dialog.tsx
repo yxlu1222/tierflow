@@ -2,13 +2,11 @@
 Copyright (C) 2023-2026 TierFlow
 */
 import { type ReactNode, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Loader2, Power, PowerOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { getUserGroups } from '@/lib/api'
-import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth-store'
+import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -27,7 +25,11 @@ import {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
 } from '../constants'
-import { ApiKeyCell, IpRestrictionsCell, ModelLimitsCell } from './api-keys-cells'
+import {
+  ApiKeyCell,
+  IpRestrictionsCell,
+  ModelLimitsCell,
+} from './api-keys-cells'
 import { useApiKeys } from './api-keys-provider'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -44,10 +46,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className='flex items-center justify-between gap-4 py-2'>
-      <span className='text-muted-foreground shrink-0 text-sm [font-family:var(--font-body)]'>
+      <span className='text-muted-foreground shrink-0 [font-family:var(--font-body)] text-sm'>
         {label}
       </span>
-      <span className='flex min-w-0 items-center gap-1.5 text-sm tabular-nums [font-family:var(--font-body)]'>
+      <span className='flex min-w-0 items-center gap-1.5 [font-family:var(--font-body)] text-sm tabular-nums'>
         {value}
       </span>
     </div>
@@ -64,24 +66,11 @@ export function ApiKeysDetailDialog() {
   const isOpen = open === 'detail' && !!apiKey
   const [toggling, setToggling] = useState(false)
 
-  const { data: groupsRes } = useQuery({
-    queryKey: ['user-self-groups'],
-    queryFn: getUserGroups,
-    staleTime: 5 * 60 * 1000,
-    enabled: isOpen,
-  })
-
   if (!apiKey) return null
 
   const statusConfig = API_KEY_STATUSES[apiKey.status]
   const isEnabled = apiKey.status === API_KEY_STATUS.ENABLED
   const group = apiKey.group || userGroup
-  const groupRatio =
-    group && group !== 'auto' && groupsRes?.success
-      ? groupsRes.data?.[group]?.ratio
-      : undefined
-  const ratio = typeof groupRatio === 'number' ? groupRatio : undefined
-
   const used = apiKey.used_quota
   const remaining = apiKey.remain_quota
   const total = used + remaining
@@ -153,7 +142,7 @@ export function ApiKeysDetailDialog() {
                     )}
                   </span>
                 ) : (
-                  <GroupBadge group={group} ratio={ratio} showDot={false} />
+                  <GroupBadge group={group} showDot={false} />
                 )
               }
             />
@@ -167,9 +156,9 @@ export function ApiKeysDetailDialog() {
             />
           </Section>
 
-          <Section title={t('Quota')}>
+          <Section title={t('Inference Quota')}>
             {apiKey.unlimited_quota ? (
-              <Row label={t('Quota')} value={t('Unlimited')} />
+              <Row label={t('Inference Quota')} value={t('Unlimited')} />
             ) : (
               <>
                 <Row label={t('Remaining')} value={formatQuota(remaining)} />

@@ -29,7 +29,7 @@ function getQuotaProgressColor(percentage: number): string {
 
 export function useUsersColumns(): ColumnDef<User>[] {
   const { t } = useTranslation()
-  return [
+  const columns: ColumnDef<User>[] = [
     {
       id: 'select',
       header: ({ table }) => (
@@ -149,7 +149,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
       id: 'quota',
       accessorKey: 'quota',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Quota')} />
+        <DataTableColumnHeader column={column} title={t('Inference Quota')} />
       ),
       cell: ({ row }) => {
         const user = row.original
@@ -161,7 +161,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
         if (total === 0) {
           return (
             <StatusBadge
-              label={t('No Quota')}
+              label={t('No Inference Quota')}
               variant='neutral'
               copyable={false}
             />
@@ -205,7 +205,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
           </Tooltip>
         )
       },
-      meta: { label: t('Quota') },
+      meta: { label: t('Inference Quota') },
     },
     {
       accessorKey: 'group',
@@ -252,83 +252,6 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { label: t('Role') },
     },
     {
-      id: 'invite_info',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Invite Info')} />
-      ),
-      cell: ({ row }) => {
-        const user = row.original
-        const affCount = user.aff_count || 0
-        const affHistoryQuota = user.aff_history_quota || 0
-        const inviterId = user.inviter_id || 0
-        // 只展示邀请人的对外 uid;后端未解析到时退回 '-',绝不回退到内部 id
-        const inviterUid = user.inviter_uid || '-'
-
-        return (
-          <div className='flex items-center gap-1'>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <StatusBadge
-                    label={`${t('Invited')}: ${affCount}`}
-                    variant='neutral'
-                    copyable={false}
-                    className='cursor-help'
-                  />
-                }
-              />
-              <TooltipContent>
-                <p className='text-xs'>{t('Number of users invited')}</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <StatusBadge
-                    label={`${t('Revenue')}: ${formatQuota(affHistoryQuota)}`}
-                    variant='neutral'
-                    copyable={false}
-                    className='cursor-help'
-                  />
-                }
-              />
-              <TooltipContent>
-                <p className='text-xs'>{t('Total invitation revenue')}</p>
-              </TooltipContent>
-            </Tooltip>
-            {inviterId > 0 && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <StatusBadge
-                      label={`${t('Inviter')}: ${inviterUid}`}
-                      variant='neutral'
-                      copyable={false}
-                      className='cursor-help'
-                    />
-                  }
-                />
-                <TooltipContent>
-                  <p className='text-xs'>
-                    {t('Invited by user UID')} {inviterUid}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {inviterId === 0 && (
-              <StatusBadge
-                label={t('No Inviter')}
-                variant='neutral'
-                copyable={false}
-              />
-            )}
-          </div>
-        )
-      },
-      enableSorting: false,
-      meta: { label: t('Invite Info'), mobileHidden: true },
-    },
-    {
       accessorKey: 'created_at',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('Created At')} />
@@ -364,4 +287,6 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { label: t('Actions') },
     },
   ]
+
+  return columns
 }
