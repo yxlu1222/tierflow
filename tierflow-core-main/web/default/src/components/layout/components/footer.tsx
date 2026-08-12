@@ -20,8 +20,7 @@ const CONTACT_PHONE = '+86 400-000-0000'
 
 // 内部路由(TanStack 类型化 Link)与外链分开定义,避免给不存在的路由传 `to`。
 const PRODUCT_INTERNAL: { label: string; to: string }[] = [
-  { label: '套餐方案', to: '/pricing' },
-  { label: '控制台', to: '/dashboard' },
+  { label: '一体机首页', to: '/usage' },
 ]
 const PRODUCT_EXTERNAL: { label: string; href: string }[] = [
   { label: '接入文档', href: DOCS_URL },

@@ -23,7 +23,6 @@ import {
   GhostLink,
   PrimaryButton,
 } from '@/components/landing-kit'
-import { usePublicPlanTiers } from '@/features/pricing/plan-cards'
 import {
   BASELINE,
   COST_EFFICIENCY,
@@ -83,7 +82,7 @@ export function TierFlowLanding(props: { isAuthenticated?: boolean }) {
     (typeof window !== 'undefined' ? window.location.origin : '') + '/v1'
 
   const handleCtaClick = () => {
-    navigate({ to: isLoggedIn ? '/dashboard' : '/sign-up' })
+    navigate({ to: isLoggedIn ? '/usage' : '/sign-up' })
   }
 
   return (
@@ -93,7 +92,6 @@ export function TierFlowLanding(props: { isAuthenticated?: boolean }) {
       <HowSection />
       <ProofSection />
       <DeveloperSection baseUrl={baseUrl} />
-      <PricingStrip />
       <FinalCta onCta={handleCtaClick} />
     </div>
   )
@@ -368,48 +366,10 @@ const res = await client.chat.completions.create({
   )
 }
 
-/* ===================== 套餐定价横条 (05) ===================== */
-// 对齐参考稿 index.html 的 price-strip:左侧眉标 + 标题 + 各档价一行,
-// 右侧「查看套餐详情」跳 /pricing。价格走 usePublicPlanTiers 动态取
-// (含静态兜底),后台改套餐首页即时同步,不写死第二份价格。
-function PricingStrip() {
-  const navigate = useNavigate()
-  const tiers = usePublicPlanTiers()
-  const minPrice = Math.min(...tiers.map((t) => t.price))
-  return (
-    <section
-      id='pricing'
-      className='scroll-mt-[88px] bg-[var(--tf-surface-2)] py-[clamp(32px,4vw,52px)]'
-    >
-      <div className={CONTAINER}>
-        <AnimateInView animation='fade-up'>
-          <div className='flex flex-wrap items-center justify-between gap-x-8 gap-y-5'>
-            <div>
-              <Eyebrow index='05' label='套餐定价' />
-              <h2
-                className='m-0 mt-3 text-[clamp(24px,2.6vw,34px)] leading-[1.15] font-semibold tracking-[-0.025em] text-[var(--tf-ink)] tabular-nums'
-                style={DISPLAY}
-              >
-                ¥{minPrice} 起，用好 30 天
-              </h2>
-            </div>
-            <PrimaryButton
-              size='lg'
-              onClick={() => navigate({ to: '/pricing' })}
-            >
-              查看套餐详情
-            </PrimaryButton>
-          </div>
-        </AnimateInView>
-      </div>
-    </section>
-  )
-}
-
 /* ===================== 收束 CTA ===================== */
 function FinalCta(props: { onCta: () => void }) {
   return (
-    // 白底收尾：接上灰底套餐横条，保持灰/白交替
+    // 一体机版本不展示套餐横条，使用简洁白底收束页面。
     <section>
       <div className={`${CONTAINER} py-[clamp(48px,6vw,80px)] text-center`}>
         <AnimateInView animation='fade-up'>

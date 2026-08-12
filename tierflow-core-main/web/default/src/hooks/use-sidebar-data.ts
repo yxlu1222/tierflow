@@ -6,18 +6,14 @@ import {
   BarChart3,
   Box,
   Boxes,
-  CreditCard,
-  Crown,
+  CircleGauge,
   Key,
   LifeBuoy,
   Megaphone,
   MessagesSquare,
   Radio,
-  Receipt,
-  ReceiptText,
   Route,
   Settings,
-  Ticket,
   User,
   Users,
   Wrench,
@@ -40,39 +36,21 @@ export function useSidebarData(): SidebarData {
 
   return {
     navGroups: [
-      // 普通用户区扁平化:不分一级类目,所有入口平铺成一列,靠图标和顺序区分。
-      // 用户端总共就七个入口,分组反而制造了「每组一两项」的碎片感。顺序按
-      // 「看用量 → 接入 → 两条计费通道 → 账户」排,订阅制和按量付费相邻但不
-      // 混淆(两者互不串扣,套餐桶用尽不会回落到余额)。
-      // 管理员功能仍按域分三组 —— 那边入口多,分组是有效的。
+      // 一体机用户区保持扁平：首屏、API Key、通知、工单与账户。
+      // 管理员功能仍按域分组，便于在设备上执行模型与系统运维。
       {
         id: 'user',
         title: '',
         items: [
           {
-            title: t('Usage Info'),
+            title: t('Appliance Home'),
             url: '/usage',
-            icon: BarChart3,
+            icon: CircleGauge,
           },
           {
             title: t('API Keys'),
             url: '/keys',
             icon: Key,
-          },
-          {
-            title: t('My Subscription'),
-            url: '/subscription',
-            icon: Crown,
-          },
-          {
-            title: t('Recharge'),
-            url: '/recharge',
-            icon: CreditCard,
-          },
-          {
-            title: t('Bills'),
-            url: '/billing',
-            icon: Receipt,
           },
           {
             title: t('System Notifications'),
@@ -138,21 +116,6 @@ export function useSidebarData(): SidebarData {
             title: t('User Management'),
             url: '/users',
             icon: Users,
-          },
-          {
-            title: t('Subscription Management'),
-            url: '/subscriptions',
-            icon: CreditCard,
-          },
-          {
-            title: t('Order Management'),
-            url: '/orders',
-            icon: ReceiptText,
-          },
-          {
-            title: t('Redemption Codes'),
-            url: '/redemption-codes',
-            icon: Ticket,
           },
         ],
       },

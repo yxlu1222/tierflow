@@ -166,10 +166,8 @@ export function PublicHeader(props: PublicHeaderProps) {
     <>
       <header
         className={cn(
-          'pointer-events-none fixed inset-x-0 top-0 z-50 border-border/50 border-b transition-all duration-[700ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
-          scrolled
-            ? 'bg-background/80 backdrop-blur-xl'
-            : 'bg-transparent'
+          'border-border/50 pointer-events-none fixed inset-x-0 top-0 z-50 border-b transition-all duration-[700ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+          scrolled ? 'bg-background/80 backdrop-blur-xl' : 'bg-transparent'
         )}
       >
         <div className='pointer-events-auto mx-auto max-w-7xl px-4 md:px-6'>
@@ -277,9 +275,7 @@ export function PublicHeader(props: PublicHeaderProps) {
                       size='default'
                       className='h-10 rounded-lg px-5 text-sm font-medium'
                       render={
-                        <Link
-                          to={isAuthenticated ? '/dashboard' : '/sign-in'}
-                        />
+                        <Link to={isAuthenticated ? '/usage' : '/sign-in'} />
                       }
                     >
                       {isAuthenticated ? t('Console') : t('Sign in')}
@@ -392,7 +388,7 @@ export function PublicHeader(props: PublicHeaderProps) {
           >
             {showAuthButtons && (
               <Link
-                to={isAuthenticated ? '/dashboard' : '/sign-in'}
+                to={isAuthenticated ? '/usage' : '/sign-in'}
                 onClick={() => setMobileOpen(false)}
                 className='bg-foreground text-background inline-flex h-10 items-center justify-center rounded-lg text-sm font-medium transition-opacity hover:opacity-90 active:opacity-80'
               >

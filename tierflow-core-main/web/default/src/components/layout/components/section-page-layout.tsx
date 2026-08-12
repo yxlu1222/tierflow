@@ -8,6 +8,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react'
+import { cn } from '@/lib/utils'
 import { Main } from './main'
 import { PageFooterProvider } from './page-footer'
 
@@ -65,23 +66,24 @@ export function SectionPageLayout(props: SectionPageLayoutProps) {
       breadcrumb = child.props.children
   })
 
-  const header = (
-    <div className='px-4 pt-5 pb-2.5 sm:px-10 sm:pt-8 sm:pb-3'>
-      {breadcrumb != null && <div className='mb-2 sm:mb-3'>{breadcrumb}</div>}
-      <div className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:gap-x-4'>
-        <div className='min-w-0 flex-1'>
-          <h2 className='text-xl font-semibold tracking-tight text-foreground m-0 sm:text-2xl'>
-            {title}
-          </h2>
-        </div>
-        {actions != null && (
-          <div className='flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-x-4'>
-            {actions}
+  const header =
+    title != null || actions != null || breadcrumb != null ? (
+      <div className='px-4 pt-5 pb-2.5 sm:px-10 sm:pt-8 sm:pb-3'>
+        {breadcrumb != null && <div className='mb-2 sm:mb-3'>{breadcrumb}</div>}
+        <div className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:gap-x-4'>
+          <div className='min-w-0 flex-1'>
+            <h2 className='text-foreground m-0 text-xl font-semibold tracking-tight sm:text-2xl'>
+              {title}
+            </h2>
           </div>
-        )}
+          {actions != null && (
+            <div className='flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-x-4'>
+              {actions}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    ) : null
 
   return (
     <PageFooterProvider container={footerContainer}>
@@ -90,7 +92,12 @@ export function SectionPageLayout(props: SectionPageLayoutProps) {
           // Header scrolls with the content (single scroll container, default).
           <div className='min-h-0 flex-1 overflow-auto'>
             {header}
-            <div className='px-4 pt-1 pb-5 sm:px-10 sm:pt-1.5 sm:pb-8'>
+            <div
+              className={cn(
+                'px-4 pb-5 sm:px-10 sm:pb-8',
+                header == null ? 'pt-4 sm:pt-7' : 'pt-1 sm:pt-1.5'
+              )}
+            >
               {content}
             </div>
           </div>

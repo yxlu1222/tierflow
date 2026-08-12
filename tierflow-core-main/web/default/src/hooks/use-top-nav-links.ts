@@ -28,7 +28,6 @@ export function useTopNavLinks(): TopNavLink[] {
 
   return [
     // 「工作原理」「性能实测」已并入首页(#how / #proof),独立页与导航入口一并撤除
-    { title: t('Pricing Plans'), href: '/pricing' },
     // 站内没有 /docs 路由,未配置时回落到官方文档站,不要指向内部路径
     { title: t('Docs'), href: docsLink || DOCS_URL, external: true },
     { title: t('About'), href: '/about' },
