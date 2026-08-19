@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-08-19",
+  "official_model": "inclusionAI/Ling-3.0-tiny",
+  "selected_weights": "inclusionAI/Ling-3.0-tiny-fp8",
+  "license": "MIT",
+  "total_parameters": "7.9B",
+  "activated_parameters_per_token": "1.4B",
+  "runtime": "SGLang",
+  "runtime_image": "lmsysorg/sglang:dev-Ling-3.0-tiny",
+  "tierflow_model_id": "Ling-3.0-tiny",
+  "tierflow_upstream_port": 8106,
+  "context_length": 131072,
+  "speculative_algorithm": null,
+  "tool_call_parser": "ling3",
+  "reasoning_parser": "ling3",
+  "official_dgx_spark_claim": {
+    "weight_format": "FP8",
+    "output_tokens_per_second": "100-105",
+    "peak_memory_gib_at_8k": 8.34
+  },
+  "sources": [
+    "https://huggingface.co/inclusionAI/Ling-3.0-tiny",
+    "https://huggingface.co/inclusionAI/Ling-3.0-tiny-fp8",
+    "https://docs.sglang.io/cookbook/autoregressive/InclusionAI/Ling-3.0-tiny"
+  ]
+}

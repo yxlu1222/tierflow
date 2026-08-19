@@ -1,0 +1,7 @@
+FROM lmsysorg/sglang:dev-Ling-3.0-tiny
+
+RUN sed -i \
+    's/self\._use_min_latency_fused_a_gemm: bool | None = None/self._use_min_latency_fused_a_gemm: bool | None = False/' \
+    /sgl-workspace/sglang/python/sglang/srt/models/deepseek_v2.py \
+ && grep -q 'self._use_min_latency_fused_a_gemm: bool | None = False' \
+    /sgl-workspace/sglang/python/sglang/srt/models/deepseek_v2.py

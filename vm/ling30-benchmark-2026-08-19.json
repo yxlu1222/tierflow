@@ -1,0 +1,118 @@
+{
+  "timestamp": "2026-08-19T21:26:00+08:00",
+  "host": "spark-c906",
+  "model": "Ling-3.0-tiny",
+  "engine": "SGLang",
+  "engine_image": "tierflow/sglang-ling30:spark-fix1",
+  "context_length": 131072,
+  "configuration": {
+    "model_format": "FP8",
+    "mem_fraction_static": 0.4,
+    "max_running_requests": 8,
+    "reasoning_parser": "ling3",
+    "tool_call_parser": "ling3",
+    "direct_endpoint": "http://127.0.0.1:8106"
+  },
+  "method": {
+    "warmup_completion_tokens": 128,
+    "decode_completion_tokens_per_request": 512,
+    "decode_repeats_per_level": 2,
+    "forced_completion_length": true,
+    "thinking_disabled": true,
+    "streaming": true,
+    "memory_sample_interval_seconds": 0.25
+  },
+  "idle_baseline": {
+    "cuda_visible_unified_total_gib": 121.6896,
+    "cuda_visible_unified_used_gib": 87.4193,
+    "system_mem_available_gib": 66.0186,
+    "sglang_process_rss_gib": 5.8647
+  },
+  "decode_concurrency": [
+    {
+      "concurrency": 1,
+      "median_aggregate_e2e_tps": 106.0315,
+      "median_aggregate_active_decode_tps": 106.7030,
+      "median_per_request_decode_tps": 106.7030,
+      "median_ttft_seconds": 0.0385,
+      "ttft_range_seconds": [0.0378, 0.0392],
+      "median_e2e_seconds": 4.8276,
+      "peak_cuda_visible_unified_used_gib": 87.7640,
+      "maximum_cuda_visible_used_delta_gib": 0.3102,
+      "minimum_system_mem_available_gib": 65.7620,
+      "peak_sglang_process_rss_gib": 5.8647,
+      "peak_running_requests": 1,
+      "peak_queued_requests": 0
+    },
+    {
+      "concurrency": 2,
+      "median_aggregate_e2e_tps": 182.0363,
+      "median_aggregate_active_decode_tps": 184.9779,
+      "median_per_request_decode_tps": 92.5012,
+      "median_ttft_seconds": 0.1001,
+      "ttft_range_seconds": [0.0652, 0.1348],
+      "median_e2e_seconds": 5.6245,
+      "peak_cuda_visible_unified_used_gib": 87.6896,
+      "maximum_cuda_visible_used_delta_gib": 0.0876,
+      "minimum_system_mem_available_gib": 65.6241,
+      "peak_sglang_process_rss_gib": 5.8648,
+      "peak_running_requests": 2,
+      "peak_queued_requests": 0
+    },
+    {
+      "concurrency": 4,
+      "median_aggregate_e2e_tps": 281.7250,
+      "median_aggregate_active_decode_tps": 294.7653,
+      "median_per_request_decode_tps": 73.7231,
+      "median_ttft_seconds": 0.3439,
+      "ttft_range_seconds": [0.0696, 0.6160],
+      "median_e2e_seconds": 7.2760,
+      "peak_cuda_visible_unified_used_gib": 87.6820,
+      "maximum_cuda_visible_used_delta_gib": 0.0706,
+      "minimum_system_mem_available_gib": 65.6105,
+      "peak_sglang_process_rss_gib": 5.8936,
+      "peak_running_requests": 4,
+      "peak_queued_requests": 0
+    },
+    {
+      "concurrency": 8,
+      "median_aggregate_e2e_tps": 462.0660,
+      "median_aggregate_active_decode_tps": 465.0815,
+      "median_per_request_decode_tps": 58.2336,
+      "median_ttft_seconds": 0.0869,
+      "ttft_range_seconds": [0.0700, 0.0917],
+      "median_e2e_seconds": 8.8624,
+      "peak_cuda_visible_unified_used_gib": 87.6974,
+      "maximum_cuda_visible_used_delta_gib": 0.0380,
+      "minimum_system_mem_available_gib": 65.5600,
+      "peak_sglang_process_rss_gib": 5.8938,
+      "peak_running_requests": 8,
+      "peak_queued_requests": 0
+    }
+  ],
+  "long_context": {
+    "target_prompt_tokens": 32768,
+    "actual_prompt_tokens": 34325,
+    "completion_tokens": 64,
+    "ttft_seconds": 11.3504,
+    "estimated_prefill_tps": 3024.1354,
+    "decode_tps": 93.9776,
+    "e2e_seconds": 12.0208,
+    "peak_cuda_visible_unified_used_gib": 87.6318,
+    "cuda_visible_used_delta_gib": 0.1795,
+    "minimum_system_mem_available_gib": 65.7717,
+    "system_mem_available_drop_gib": 0.2274,
+    "peak_sglang_process_rss_gib": 5.8939
+  },
+  "validation": {
+    "service_active_after_test": true,
+    "health_http_status_after_test": 200,
+    "oom_observed": false,
+    "queued_requests_at_concurrency_8": 0
+  },
+  "notes": [
+    "DGX Spark GB10 uses unified memory. CUDA total-minus-free is a machine-level CUDA-visible unified-memory indicator, not dedicated VRAM attributable only to this model.",
+    "The first concurrency-4 repeat had a 0.616-second TTFT scheduling or warm-path outlier; the second repeat was approximately 0.072 seconds.",
+    "SGLang's /v1/tokenize endpoint returned HTTP 500 because its response contained an integer outside ORJSON's signed 64-bit range. Long-context calibration therefore used reported chat-completion usage with a distinct nonce to avoid prefix-cache reuse."
+  ]
+}

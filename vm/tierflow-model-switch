@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+target=${1:-status}
+qwen_service=tierflow-model-qwen38.service
+nanbeige_service=tierflow-model-nanbeige42.service
+deepseek_service=tierflow-model-deepseek-v4-flash.service
+nemotron_service=tierflow-model-nemotron35-lightning.service
+lfm_service=tierflow-model-lfm25.service
+ling_service=tierflow-model-ling30-tiny.service
+db=/var/lib/tierflow/tierflow.db
+
+declare -A service_url=(
+  ["${qwen_service}"]=http://127.0.0.1:8102
+  ["${nanbeige_service}"]=http://127.0.0.1:8101
+  ["${deepseek_service}"]=http://127.0.0.1:8103
+  ["${nemotron_service}"]=http://127.0.0.1:8104
+  ["${lfm_service}"]=http://127.0.0.1:8105
+  ["${ling_service}"]=http://127.0.0.1:8106
+)
+declare -A service_health=(
+  ["${qwen_service}"]=http://127.0.0.1:8102/health
+  ["${nanbeige_service}"]=http://127.0.0.1:8101/health
+  ["${deepseek_service}"]=http://127.0.0.1:8103/v1/models
+  ["${nemotron_service}"]=http://127.0.0.1:8104/health
+  ["${lfm_service}"]=http://127.0.0.1:8105/health
+  ["${ling_service}"]=http://127.0.0.1:8106/health
+)
+
+wait_for_health() {
+  local url=$1
+  for _ in $(seq 1 1800); do
+    if curl --fail --silent "${url}" >/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+active_model_service() {
+  local service
+  for service in "${qwen_service}" "${nanbeige_service}" "${deepseek_service}" "${nemotron_service}" "${lfm_service}" "${ling_service}"; do
+    if systemctl is-active --quiet "${service}"; then
+      printf '%s\n' "${service}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+activate_channel() {
+  local active_url=$1
+  if [[ -f ${db} ]]; then
+    sqlite3 "${db}" <<SQL
+BEGIN;
+UPDATE channels
+   SET status = CASE WHEN base_url = '${active_url}' THEN 1 ELSE 2 END
+ WHERE base_url IN ('http://127.0.0.1:8101', 'http://127.0.0.1:8102', 'http://127.0.0.1:8103', 'http://127.0.0.1:8104', 'http://127.0.0.1:8105', 'http://127.0.0.1:8106');
+UPDATE abilities
+   SET enabled = CASE
+       WHEN channel_id IN (SELECT id FROM channels WHERE base_url = '${active_url}') THEN 1
+       ELSE 0
+   END
+ WHERE channel_id IN (
+       SELECT id FROM channels
+        WHERE base_url IN ('http://127.0.0.1:8101', 'http://127.0.0.1:8102', 'http://127.0.0.1:8103', 'http://127.0.0.1:8104', 'http://127.0.0.1:8105', 'http://127.0.0.1:8106')
+   );
+COMMIT;
+SQL
+  fi
+  if systemctl list-unit-files tierflow-stack.service >/dev/null 2>&1; then
+    systemctl restart tierflow-stack.service
+  fi
+}
+
+switch_to() {
+  local wanted_service=$1
+  local label=$2
+  local previous_service=''
+  previous_service=$(active_model_service || true)
+
+  local service
+  for service in "${qwen_service}" "${nanbeige_service}" "${deepseek_service}" "${nemotron_service}" "${lfm_service}" "${ling_service}"; do
+    if [[ ${service} != "${wanted_service}" ]]; then
+      systemctl disable --now "${service}" >/dev/null 2>&1 || true
+    fi
+  done
+
+  systemctl enable --now "${wanted_service}"
+  if ! wait_for_health "${service_health[${wanted_service}]}"; then
+    systemctl disable --now "${wanted_service}" >/dev/null 2>&1 || true
+    if [[ -n ${previous_service} ]] && [[ ${previous_service} != "${wanted_service}" ]]; then
+      systemctl enable --now "${previous_service}"
+      wait_for_health "${service_health[${previous_service}]}" || true
+      activate_channel "${service_url[${previous_service}]}"
+    fi
+    printf '%s health check failed; previous model was restored.\n' "${label}" >&2
+    exit 1
+  fi
+
+  activate_channel "${service_url[${wanted_service}]}"
+  printf '%s is active.\n' "${label}"
+}
+
+case "${target}" in
+  qwen38|qwen3.8|qwen3.8-27b)
+    switch_to "${qwen_service}" Qwen3.8-27B
+    ;;
+  nanbeige42|nanbeige)
+    switch_to "${nanbeige_service}" Nanbeige4.2-3B
+    ;;
+  deepseek-v4-flash|deepseek-v4|deepseek)
+    switch_to "${deepseek_service}" DeepSeek-V4-Flash-0731
+    ;;
+  nemotron35|nemotron3.5|nemotron)
+    switch_to "${nemotron_service}" Nemotron-3.5-Lightning-30B-A3B
+    ;;
+  lfm25|lfm2.5|lfm)
+    switch_to "${lfm_service}" LFM2.5-2.6B
+    ;;
+  ling30|ling3.0|ling)
+    switch_to "${ling_service}" Ling-3.0-tiny
+    ;;
+  status)
+    for service in "${qwen_service}" "${nanbeige_service}" "${deepseek_service}" "${nemotron_service}" "${lfm_service}" "${ling_service}"; do
+      printf '%-48s %s\n' "${service}" "$(systemctl is-active "${service}" 2>/dev/null || true)"
+    done
+    ;;
+  *)
+    echo "Usage: tierflow-model-switch {qwen38|nanbeige42|deepseek-v4-flash|nemotron35|lfm25|ling30|status}" >&2
+    exit 2
+    ;;
+esac

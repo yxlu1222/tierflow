@@ -1,0 +1,54 @@
+[Unit]
+Description=TierFlow InclusionAI Ling-3.0-tiny FP8 inference service (SGLang)
+Wants=network-online.target
+Requires=docker.service
+After=network-online.target docker.service
+Conflicts=tierflow-model-qwen38.service tierflow-model-nanbeige42.service tierflow-model-deepseek-v4-flash.service tierflow-model-nemotron35-lightning.service tierflow-model-lfm25.service
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm -f tierflow-model-ling30-tiny
+ExecStart=/usr/bin/docker run --rm \
+  --name tierflow-model-ling30-tiny \
+  --gpus all \
+  --network host \
+  --ipc host \
+  --shm-size 16g \
+  --memory 110g \
+  --memory-swap 110g \
+  --ulimit memlock=-1 \
+  --ulimit stack=67108864 \
+  --stop-timeout 120 \
+  -e HF_HUB_OFFLINE=1 \
+  -e TRANSFORMERS_OFFLINE=1 \
+  -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+  -e TORCHINDUCTOR_CACHE_DIR=/cache/inductor \
+  -v /var/lib/tierflow/models/ling-3.0-tiny-fp8:/model:ro \
+  -v /var/cache/tierflow-sglang:/root/.cache/sglang \
+  -v /var/cache/tierflow-sglang:/cache \
+  tierflow/sglang-ling30:spark-fix1 \
+  python3 -m sglang.launch_server \
+  --trust-remote-code \
+  --model-path /model \
+  --served-model-name Ling-3.0-tiny \
+  --context-length 131072 \
+  --mem-fraction-static 0.40 \
+  --max-running-requests 8 \
+  --fp8-gemm-backend triton \
+  --moe-runner-backend triton \
+  --bf16-gemm-backend torch \
+  --reasoning-parser ling3 \
+  --tool-call-parser ling3 \
+  --enable-metrics \
+  --host 127.0.0.1 \
+  --port 8106
+ExecStop=-/usr/bin/docker stop -t 120 tierflow-model-ling30-tiny
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=3600
+TimeoutStopSec=180
+KillMode=process
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
