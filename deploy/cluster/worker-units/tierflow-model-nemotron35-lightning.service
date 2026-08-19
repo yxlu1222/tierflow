@@ -1,0 +1,58 @@
+[Unit]
+Description=TierFlow NVIDIA Nemotron-3.5-Lightning-30B-A3B NVFP4 + DSpark inference service (SGLang)
+Wants=network-online.target
+Requires=docker.service
+After=network-online.target docker.service
+Conflicts=tierflow-model-ling30-tiny.service tierflow-model-qwen38.service tierflow-model-lfm25.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/tierflow/model-bind.env
+ExecStartPre=-/usr/bin/docker rm -f tierflow-model-nemotron35
+ExecStart=/usr/bin/docker run --rm \
+  --name tierflow-model-nemotron35 \
+  --gpus all \
+  --network host \
+  --ipc host \
+  --shm-size 16g \
+  --memory 100g \
+  --memory-swap 100g \
+  --ulimit memlock=-1 \
+  --ulimit stack=67108864 \
+  --stop-timeout 120 \
+  -e HF_HUB_OFFLINE=1 \
+  -e TRANSFORMERS_OFFLINE=1 \
+  -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+  -e TORCHINDUCTOR_CACHE_DIR=/cache/inductor \
+  -v /var/lib/tierflow/models/nemotron-3.5-lightning-30b-a3b-nvfp4:/model:ro \
+  -v /var/lib/tierflow/models/nemotron-3.5-lightning-30b-a3b-nvfp4-dspark:/draft:ro \
+  -v /var/cache/tierflow-sglang:/root/.cache/sglang \
+  -v /var/cache/tierflow-sglang:/cache \
+  lmsysorg/sglang:dev-nemotron3-5-lightning \
+  sglang serve \
+  --trust-remote-code \
+  --model-path /model \
+  --served-model-name Nemotron-3.5-Lightning-30B-A3B \
+  --context-length 262144 \
+  --mem-fraction-static 0.70 \
+  --mamba-ssm-dtype float16 \
+  --cuda-graph-max-bs-decode 4 \
+  --speculative-algorithm DSPARK \
+  --speculative-draft-model-path /draft \
+  --speculative-dspark-block-size 3 \
+  --max-running-requests 8 \
+  --reasoning-parser nemotron_3 \
+  --tool-call-parser qwen3_coder \
+  --enable-metrics \
+  --host ${TIERFLOW_MODEL_BIND_IP} \
+  --port 8104
+ExecStop=-/usr/bin/docker stop -t 120 tierflow-model-nemotron35
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=3600
+TimeoutStopSec=180
+KillMode=process
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

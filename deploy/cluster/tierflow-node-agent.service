@@ -1,0 +1,32 @@
+[Unit]
+Description=TierFlow cluster node agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/opt/tierflow/node-agent/tierflow-node-agent --config /etc/tierflow/node-agent.json
+Restart=always
+RestartSec=3
+TimeoutStartSec=30
+TimeoutStopSec=15
+UMask=0027
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectControlGroups=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+ReadWritePaths=/var/lib/tierflow
+
+[Install]
+WantedBy=multi-user.target

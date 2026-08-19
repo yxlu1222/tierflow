@@ -1,0 +1,50 @@
+{
+  "node_name": "spark-worker-01",
+  "role": "worker",
+  "listen": "192.168.200.2:9020",
+  "advertise_url": "http://192.168.200.2:9020",
+  "controller_url": "http://192.168.200.1:3000/api/cluster/heartbeat",
+  "token_file": "/etc/tierflow/cluster-agent.token",
+  "state_file": "/var/lib/tierflow/node-agent-state.json",
+  "disk_path": "/var/lib/tierflow",
+  "heartbeat_interval_seconds": 10,
+  "command_timeout_seconds": 30,
+  "models": [
+    {
+      "id": "lfm2.5-2.6b",
+      "display_name": "LFM2.5-2.6B",
+      "service": "tierflow-model-lfm25.service",
+      "endpoint": "http://192.168.200.2:8105/v1",
+      "model_path": "/var/lib/tierflow/models",
+      "manifest_path": "/var/lib/tierflow/models/.manifests/lfm2.5-2.6b.sha256",
+      "channel_id": 5
+    },
+    {
+      "id": "ling-3.0-tiny",
+      "display_name": "Ling-3.0-tiny",
+      "service": "tierflow-model-ling30-tiny.service",
+      "endpoint": "http://192.168.200.2:8106/v1",
+      "model_path": "/var/lib/tierflow/models",
+      "manifest_path": "/var/lib/tierflow/models/.manifests/ling-3.0-tiny.sha256",
+      "channel_id": 6
+    },
+    {
+      "id": "qwen3.8-27b",
+      "display_name": "Qwen3.8-27B",
+      "service": "tierflow-model-qwen38.service",
+      "endpoint": "http://192.168.200.2:8102/v1",
+      "model_path": "/var/lib/tierflow/models",
+      "manifest_path": "/var/lib/tierflow/models/.manifests/qwen3.8-27b.sha256",
+      "channel_id": 2
+    },
+    {
+      "id": "nemotron-3.5-lightning",
+      "display_name": "Nemotron-3.5-Lightning-30B-A3B",
+      "service": "tierflow-model-nemotron35-lightning.service",
+      "endpoint": "http://192.168.200.2:8104/v1",
+      "model_path": "/var/lib/tierflow/models",
+      "manifest_path": "/var/lib/tierflow/models/.manifests/nemotron-3.5-lightning.sha256",
+      "channel_id": 4
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import (
 
 func SetRouter(router *gin.Engine, assets ThemeAssets) {
 	SetApiRouter(router)
+	SetClusterRouter(router)
 	SetDashboardRouter(router)
 	SetRelayRouter(router)
 	frontendBaseUrl := os.Getenv("FRONTEND_BASE_URL")

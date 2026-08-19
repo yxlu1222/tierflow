@@ -302,6 +302,7 @@ func migrateDB() error {
 		&PlanModelSetMember{},
 		&Ticket{},
 		&TicketMessage{},
+		&ClusterNode{},
 	)
 	if err != nil {
 		return err
@@ -680,6 +681,7 @@ func migrateLOGDB() error {
 //   - 未设 LOG_SQL_DSN(默认):InitLogDB 直接 `LOG_DB = DB` 就 return,
 //     migrateLOGDB 压根不跑,Log 是在 migrateDB 的主 AutoMigrate 列表里迁移的;
 //   - 设了 LOG_SQL_DSN:logs 独立库,由 migrateLOGDB 迁移。
+//
 // 只挂一处会在另一种形态下静默失效 —— 这个函数第一版就只挂了 migrateLOGDB,
 // 结果在默认形态下完全没执行。故显式接收 *gorm.DB 而不是读全局。
 //
