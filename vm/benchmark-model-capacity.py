@@ -27,11 +27,26 @@ def read_memory():
     }
 
 
-def stream_request(base_url, model, max_tokens, timeout, request_id):
-    prompt = (
+def build_prompt(request_id, prompt_token_target):
+    if prompt_token_target:
+        # LFM tokenizes "stable inference " as two tokens. Leave chat-template
+        # overhead outside the requested content-token target.
+        return "stable inference " * max(1, prompt_token_target // 2)
+    return (
         f"Request {request_id}: write a long numbered list of concise, distinct facts "
         "about reliable local AI inference. Continue until the output limit."
     )
+
+
+def stream_request(
+    base_url,
+    model,
+    max_tokens,
+    timeout,
+    request_id,
+    prompt_token_target=0,
+):
+    prompt = build_prompt(request_id, prompt_token_target)
     body = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
@@ -116,6 +131,7 @@ def run_batch(args, concurrency, repeat):
                     args.max_tokens,
                     args.timeout,
                     f"c{concurrency}-r{repeat}-{index}",
+                    args.prompt_tokens,
                 )
                 for index in range(concurrency)
             ]
@@ -127,6 +143,7 @@ def run_batch(args, concurrency, repeat):
     elapsed = time.perf_counter() - started
 
     completion_tokens = sum(row["completion_tokens"] for row in results)
+    prompt_tokens = sum(row["prompt_tokens"] for row in results)
     return {
         "kind": "batch",
         "model": args.model,
@@ -144,6 +161,8 @@ def run_batch(args, concurrency, repeat):
             row["e2e_seconds"] for row in results
         ),
         "completion_tokens": completion_tokens,
+        "prompt_tokens": prompt_tokens,
+        "aggregate_prompt_tps": prompt_tokens / elapsed,
         "baseline_used_gib": baseline["used_gib"],
         "peak_used_gib": max(row["used_gib"] for row in samples),
         "minimum_available_gib": min(row["available_gib"] for row in samples),
@@ -157,6 +176,12 @@ def main():
     parser.add_argument("--levels", default="1,2,4")
     parser.add_argument("--repeats", type=int, default=2)
     parser.add_argument("--max-tokens", type=int, default=256)
+    parser.add_argument(
+        "--prompt-tokens",
+        type=int,
+        default=0,
+        help="Approximate content-token target per request; 0 uses a short prompt.",
+    )
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--sample-interval", type=float, default=0.2)
     parser.add_argument("--cooldown", type=float, default=1.0)
@@ -164,7 +189,12 @@ def main():
 
     print(json.dumps({"kind": "idle_baseline", **read_memory()}), flush=True)
     warmup = stream_request(
-        args.base_url, args.model, min(64, args.max_tokens), args.timeout, "warmup"
+        args.base_url,
+        args.model,
+        min(64, args.max_tokens),
+        args.timeout,
+        "warmup",
+        0,
     )
     print(json.dumps({"kind": "warmup", **warmup}), flush=True)
     time.sleep(args.cooldown)

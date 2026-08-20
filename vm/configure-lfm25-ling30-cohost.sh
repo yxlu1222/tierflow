@@ -137,9 +137,9 @@ ExecStart=/opt/tierflow/inference/bin/llama-server-nanbeige42 \
   --alias LFM2.5-2.6B \
   --host ${TIERFLOW_MODEL_BIND_IP} \
   --port 8105 \
-  --ctx-size 65536 \
-  --parallel 2 \
-  --override-kv lfm2.context_length=int:32768 \
+  --ctx-size 1048576 \
+  --parallel 8 \
+  --override-kv lfm2.context_length=int:131072 \
   --gpu-layers 99 \
   --flash-attn on \
   --cache-type-k q8_0 \
@@ -157,8 +157,8 @@ TimeoutStopSec=90
 KillSignal=SIGTERM
 LimitNOFILE=1048576
 UMask=0027
-MemoryHigh=14G
-MemoryMax=18G
+MemoryHigh=24G
+MemoryMax=32G
 MemorySwapMax=0
 OOMPolicy=stop
 
@@ -232,6 +232,12 @@ systemctl start "${cohost_lfm_service}"
 if ! wait_for_model "${cohost_lfm_service}" "http://${bind_ip}:8105/v1/models" 120 2; then
   systemctl stop "${cohost_lfm_service}" || true
   echo "LFM2.5 co-host service failed its readiness check and was stopped." >&2
+  exit 1
+fi
+
+if [[ $(available_kib) -lt ${minimum_available_kib} ]]; then
+  systemctl stop "${cohost_lfm_service}" || true
+  echo "Less than 40 GiB remains after LFM startup; LFM was stopped." >&2
   exit 1
 fi
 
