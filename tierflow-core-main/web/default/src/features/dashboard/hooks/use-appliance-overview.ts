@@ -8,13 +8,17 @@ import { getUserModels } from '@/lib/api'
 import dayjs from '@/lib/dayjs'
 import { ROLE } from '@/lib/roles'
 import { useStatus } from '@/hooks/use-status'
+import {
+  getApplianceModelServices,
+  getClusterNodes,
+} from '@/features/appliance/api'
 import type { SystemStatus } from '@/features/auth/types'
 import { getApiKeys } from '@/features/keys/api'
-import { getAllLogs, getUserLogs } from '@/features/usage-logs/api'
-import type { UsageLog } from '@/features/usage-logs/data/schema'
+import { getPerfMetricsSummary } from '@/features/performance-metrics/api'
+import { getUsers } from '@/features/users/api'
 import { useOverviewData } from './use-overview-data'
 
-const OVERVIEW_WINDOW_DAYS = 7
+const OVERVIEW_WINDOW_DAYS = 1
 
 function resolveApiBaseUrl(status: SystemStatus | null): string {
   const configured =
@@ -56,43 +60,75 @@ export function useApplianceOverview() {
     staleTime: 60 * 1000,
   })
 
-  const recentCallsQuery = useQuery({
-    queryKey: ['appliance', 'recent-inference-calls', isAdmin],
-    queryFn: () => {
-      const params = { p: 1, page_size: 5, type: 2 }
-      return isAdmin ? getAllLogs(params) : getUserLogs(params)
-    },
+  const clusterQuery = useQuery({
+    queryKey: ['cluster', 'overview-nodes'],
+    queryFn: getClusterNodes,
+    enabled: isAdmin,
+    staleTime: 15 * 1000,
+  })
+
+  const modelServicesQuery = useQuery({
+    queryKey: ['appliance', 'overview-model-services'],
+    queryFn: () => getApplianceModelServices(24),
+    enabled: isAdmin,
     staleTime: 30 * 1000,
   })
 
-  const models = useMemo(
-    () => modelsQuery.data?.data?.filter(Boolean) ?? [],
-    [modelsQuery.data]
-  )
+  const usersQuery = useQuery({
+    queryKey: ['appliance', 'overview-users'],
+    queryFn: () => getUsers({ p: 1, page_size: 1 }),
+    enabled: isAdmin,
+    staleTime: 60 * 1000,
+  })
 
-  const recentCalls = useMemo(
-    () =>
-      (recentCallsQuery.data?.data?.items ?? [])
-        .slice()
-        .sort(
-          (left, right) => right.created_at - left.created_at
-        ) as UsageLog[],
-    [recentCallsQuery.data]
-  )
+  const performanceQuery = useQuery({
+    queryKey: ['appliance', 'overview-performance', 24],
+    queryFn: () => getPerfMetricsSummary(24),
+    staleTime: 30 * 1000,
+  })
+
+  const models = useMemo(() => {
+    const services = modelServicesQuery.data?.data?.services
+    if (services) return services.map((service) => service.name)
+    return modelsQuery.data?.data?.filter(Boolean) ?? []
+  }, [modelServicesQuery.data, modelsQuery.data])
+
+  const performance = useMemo(() => {
+    const rows = performanceQuery.data?.data.models ?? []
+    let requestCount = 0
+    let successCount = 0
+    let ttftWeighted = 0
+    for (const row of rows) {
+      const count = Number(row.request_count || 0)
+      requestCount += count
+      successCount += count * (Number(row.success_rate || 0) / 100)
+      ttftWeighted += count * Number(row.avg_ttft_ms || 0)
+    }
+    return {
+      successRate: requestCount > 0 ? (successCount / requestCount) * 100 : 0,
+      avgTtftMs: requestCount > 0 ? ttftWeighted / requestCount : 0,
+    }
+  }, [performanceQuery.data])
 
   return {
     apiBaseUrl: resolveApiBaseUrl(status),
     apiKeyCount: apiKeysQuery.data?.data?.total ?? 0,
     apiKeysLoading: apiKeysQuery.isLoading,
     isAdmin,
-    modelCount: models.length,
+    modelCount: modelServicesQuery.data?.data?.summary.total ?? models.length,
     models,
-    modelsLoading: modelsQuery.isLoading,
+    modelServices: modelServicesQuery.data?.data?.services ?? [],
+    modelsLoading: modelsQuery.isLoading || modelServicesQuery.isLoading,
+    clusterNodes: clusterQuery.data?.data,
+    clusterLoading: clusterQuery.isLoading,
+    userCount: usersQuery.data?.data?.total ?? 0,
+    usersLoading: usersQuery.isLoading,
+    skillCount: 0,
+    teamSkillCount: 0,
+    avgTtftMs: performance.avgTtftMs,
+    successRate: performance.successRate,
+    performanceLoading: performanceQuery.isLoading,
     overview,
-    recentCalls,
-    recentCallsLoading: recentCallsQuery.isLoading,
-    recentCallsError:
-      recentCallsQuery.isError || recentCallsQuery.data?.success === false,
     serviceReady: !statusError,
     statusLoading,
   }

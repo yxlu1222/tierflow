@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { clampPercent, formatBytes, formatDuration } from '../lib'
+import { clampPercent, formatBytes } from '../lib'
 import type { ClusterModelStatus, ClusterNodeStatus } from '../types'
 
 interface ClusterDeviceOverviewProps {
@@ -31,12 +31,20 @@ function SummaryCard(props: {
   label: string
   value: string | number
   detail: string
+  tone: 'blue' | 'indigo' | 'emerald'
 }) {
   const Icon = props.icon
+  const toneClasses = {
+    blue: 'from-blue-50/80 text-blue-700',
+    indigo: 'from-indigo-50/80 text-indigo-700',
+    emerald: 'from-emerald-50/80 text-emerald-700',
+  }[props.tone]
   return (
-    <Card className='gap-3'>
+    <Card className='gap-3 overflow-hidden rounded-2xl border-slate-200/80 bg-gradient-to-br from-white to-white shadow-sm'>
       <CardContent className='flex items-center gap-4 pt-5'>
-        <div className='flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700'>
+        <div
+          className={`flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br to-white ${toneClasses}`}
+        >
           <Icon className='size-5' aria-hidden='true' />
         </div>
         <div className='min-w-0'>
@@ -44,7 +52,9 @@ function SummaryCard(props: {
           <p className='mt-0.5 text-2xl font-semibold text-slate-950'>
             {props.value}
           </p>
-          <p className='truncate text-xs text-slate-500'>{props.detail}</p>
+          <p className='mt-0.5 text-xs leading-5 text-slate-500'>
+            {props.detail}
+          </p>
         </div>
       </CardContent>
     </Card>
@@ -80,7 +90,7 @@ function NodeMeter(props: {
   const value = clampPercent(props.value)
 
   return (
-    <div className='rounded-xl border border-slate-100 bg-white p-3'>
+    <div className='rounded-xl border border-slate-200/70 bg-white p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]'>
       <div className='mb-3 flex items-center justify-between gap-3'>
         <div className='flex min-w-0 items-center gap-2.5'>
           <div
@@ -88,7 +98,7 @@ function NodeMeter(props: {
           >
             <Icon className='size-4' aria-hidden='true' />
           </div>
-          <span className='truncate text-sm font-medium text-slate-700'>
+          <span className='text-sm leading-5 font-medium text-slate-700'>
             {props.label}
           </span>
         </div>
@@ -102,7 +112,9 @@ function NodeMeter(props: {
           style={{ width: `${value}%` }}
         />
       </div>
-      <p className='mt-1.5 text-xs text-slate-500'>{props.detail}</p>
+      <p className='mt-1.5 min-h-5 text-xs leading-5 break-words text-slate-500'>
+        {props.detail}
+      </p>
     </div>
   )
 }
@@ -142,14 +154,11 @@ function ClusterNodeCard(props: {
   const cudaPercent = cudaTotal ? (cudaUsed / cudaTotal) * 100 : 0
   const availableModels = node.models.filter(isModelAvailable).length
   const address = node.fabric_ip || node.wifi_ip
-  const lastSeenAge = Math.max(
-    0,
-    Math.floor(Date.now() / 1000) - node.last_seen_at
-  )
+  const lastSeenTime = new Date(node.last_seen_at * 1000).toLocaleTimeString()
 
   return (
-    <Card className='gap-4 overflow-hidden'>
-      <CardHeader className='border-b border-slate-100 pb-4'>
+    <Card className='gap-4 overflow-hidden rounded-2xl border-slate-200/80 shadow-sm'>
+      <CardHeader className='border-b border-slate-100 bg-gradient-to-r from-slate-50/90 to-white pb-4'>
         <div className='flex items-start justify-between gap-3'>
           <div className='flex min-w-0 items-start gap-3'>
             <div
@@ -188,7 +197,7 @@ function ClusterNodeCard(props: {
       </CardHeader>
 
       <CardContent className='space-y-5'>
-        <div className='grid gap-3 rounded-xl bg-slate-50 p-3 text-sm sm:grid-cols-2'>
+        <div className='grid gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-sm sm:grid-cols-2'>
           <div className='flex min-w-0 items-center gap-2'>
             <Network className='size-4 shrink-0 text-slate-400' />
             <span className='truncate font-mono text-slate-700'>
@@ -196,11 +205,11 @@ function ClusterNodeCard(props: {
             </span>
           </div>
           <div className='text-left text-slate-500 sm:text-right'>
-            {t('Last seen')}: {formatDuration(lastSeenAge)} {t('ago')}
+            {t('Last seen')}: {lastSeenTime}
           </div>
         </div>
 
-        <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
+        <div className='grid gap-3 sm:grid-cols-2'>
           <NodeMeter
             icon={Cpu}
             label='CPU'
@@ -332,30 +341,27 @@ export function ClusterDeviceOverview(props: ClusterDeviceOverviewProps) {
 
   return (
     <section className='space-y-4' aria-label={t('Cluster devices')}>
-      <div className='grid gap-4 sm:grid-cols-2 2xl:grid-cols-4'>
-        <SummaryCard
-          icon={Server}
-          label={t('Managed devices')}
-          value={nodes.length}
-          detail={t('Controller and worker nodes')}
-        />
+      <div className='grid gap-4 sm:grid-cols-3'>
         <SummaryCard
           icon={CircleGauge}
           label={t('Online devices')}
-          value={onlineNodes}
-          detail={t('{{count}} offline', { count: nodes.length - onlineNodes })}
+          value={`${onlineNodes} / ${nodes.length}`}
+          detail={t('Controller and worker nodes')}
+          tone='emerald'
         />
         <SummaryCard
           icon={Network}
           label={t('Worker nodes')}
           value={workerNodes}
           detail={t('Connected compute devices')}
+          tone='blue'
         />
         <SummaryCard
           icon={Boxes}
           label={t('Available model instances')}
           value={availableModels}
           detail={t('Healthy inference endpoints')}
+          tone='indigo'
         />
       </div>
 

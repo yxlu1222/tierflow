@@ -1,62 +1,31 @@
 /*
 Copyright (C) 2023-2026 TierFlow
 */
-import { CacheStatsDialog } from '@/features/system-settings/general/channel-affinity/cache-stats-dialog'
-import { UserInfoDialog } from '@/features/usage-logs/components/dialogs/user-info-dialog'
-import {
-  UsageLogsProvider,
-  useUsageLogsContext,
-} from '@/features/usage-logs/components/usage-logs-provider'
-import { UsageLogsTable } from '@/features/usage-logs/components/usage-logs-table'
+import { useTranslation } from 'react-i18next'
 import { useApplianceOverview } from '../../hooks/use-appliance-overview'
 import { ApplianceHero } from './appliance-hero'
-import { ApplianceServiceCards } from './appliance-service-cards'
-import { RecentInferenceCalls } from './recent-inference-calls'
-
-function FullActivityLog() {
-  const {
-    selectedUserId,
-    userInfoDialogOpen,
-    setUserInfoDialogOpen,
-    affinityTarget,
-    affinityDialogOpen,
-    setAffinityDialogOpen,
-  } = useUsageLogsContext()
-
-  return (
-    <>
-      <UsageLogsTable logCategory='common' />
-      <UserInfoDialog
-        userId={selectedUserId}
-        open={userInfoDialogOpen}
-        onOpenChange={setUserInfoDialogOpen}
-      />
-      <CacheStatsDialog
-        open={affinityDialogOpen}
-        onOpenChange={setAffinityDialogOpen}
-        target={
-          affinityTarget
-            ? {
-                rule_name: affinityTarget.rule_name || '',
-                using_group:
-                  affinityTarget.using_group ||
-                  affinityTarget.selected_group ||
-                  '',
-                key_hint: affinityTarget.key_hint || '',
-                key_fp: affinityTarget.key_fp || '',
-              }
-            : null
-        }
-      />
-    </>
-  )
-}
+import {
+  DeployedModels,
+  DeviceSummary,
+  PeopleAndSkillsSummary,
+  UsageKpis,
+} from './appliance-overview-panels'
 
 export function OverviewDashboard() {
+  const { t } = useTranslation()
   const appliance = useApplianceOverview()
 
   return (
     <div className='flex flex-col gap-4 sm:gap-5'>
+      <div>
+        <h1 className='text-3xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-[34px]'>
+          {t('Overview')}
+        </h1>
+        <p className='mt-1.5 text-base text-slate-500'>
+          {t('TierFlow AI capability center')}
+        </p>
+      </div>
+
       <ApplianceHero
         apiKeyCount={appliance.apiKeyCount}
         isAdmin={appliance.isAdmin}
@@ -66,28 +35,34 @@ export function OverviewDashboard() {
         loading={appliance.statusLoading}
       />
 
-      <ApplianceServiceCards
-        apiBaseUrl={appliance.apiBaseUrl}
-        apiKeyCount={appliance.apiKeyCount}
-        apiKeysLoading={appliance.apiKeysLoading}
-        isAdmin={appliance.isAdmin}
-        modelCount={appliance.modelCount}
-        models={appliance.models}
-        modelsLoading={appliance.modelsLoading}
-        requestCount={appliance.overview.totals.totalCount}
-        tokenCount={appliance.overview.totals.totalTokens}
-        usageLoading={appliance.overview.loading}
+      <UsageKpis
+        tokens={appliance.overview.totals.totalTokens}
+        requests={appliance.overview.totals.totalCount}
+        avgTtftMs={appliance.avgTtftMs}
+        successRate={appliance.successRate}
+        loading={appliance.overview.loading || appliance.performanceLoading}
       />
 
-      <UsageLogsProvider>
-        <RecentInferenceCalls
-          calls={appliance.recentCalls}
-          error={appliance.recentCallsError}
-          isAdmin={appliance.isAdmin}
-          loading={appliance.recentCallsLoading}
-          fullLog={<FullActivityLog />}
+      <div className='grid gap-4 xl:grid-cols-2'>
+        <DeviceSummary
+          nodes={appliance.clusterNodes}
+          loading={appliance.clusterLoading}
         />
-      </UsageLogsProvider>
+        <DeployedModels
+          services={appliance.modelServices}
+          models={appliance.models}
+          loading={appliance.modelsLoading}
+          isAdmin={appliance.isAdmin}
+        />
+      </div>
+
+      <PeopleAndSkillsSummary
+        userCount={appliance.userCount}
+        apiKeyCount={appliance.apiKeyCount}
+        skillCount={appliance.skillCount}
+        teamSkillCount={appliance.teamSkillCount}
+        loading={appliance.usersLoading || appliance.apiKeysLoading}
+      />
     </div>
   )
 }
