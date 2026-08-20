@@ -82,7 +82,7 @@ epiphany_profile=${shell_home}/browser-profile
 firefox_profile=${shell_home}/firefox-profile
 firefox_bin=/snap/firefox/current/usr/lib/firefox/firefox
 browser_zoom_config=/etc/tierflow-browser-zoom
-default_browser_zoom=1.00
+default_browser_zoom=2.00
 
 export DEBIAN_FRONTEND=noninteractive
 missing_packages=()
@@ -94,6 +94,15 @@ done
 if (( ${#missing_packages[@]} > 0 )); then
   apt-get update
   apt-get install -y --no-install-recommends "${missing_packages[@]}"
+fi
+
+# Firefox is the preferred appliance browser because its kiosk mode removes
+# all browser chrome and its device-pixel scaling matches the Controller UI.
+# Keep Epiphany installed as a fallback for hosts that cannot reach Snap.
+if [[ ! -x ${firefox_bin} ]] && command -v snap >/dev/null 2>&1; then
+  if ! snap install firefox; then
+    echo "Firefox Snap installation failed; Epiphany will be used as fallback." >&2
+  fi
 fi
 
 nvidia_drm_config=/etc/modprobe.d/zzzz-tierflow-nvidia-drm.conf
@@ -273,6 +282,11 @@ rm -f \
 browser_zoom=2.00
 if [[ -r ${browser_zoom_config} ]]; then
   browser_zoom=\$(tr -d '[:space:]' < ${browser_zoom_config})
+fi
+if command -v /usr/bin/gsettings >/dev/null 2>&1; then
+  /usr/bin/gsettings set \
+    org.gnome.Epiphany.web:/org/gnome/epiphany/web/ default-zoom-level \
+    "\${browser_zoom}" || true
 fi
 if [[ -f ${epiphany_profile}/ephy-history.db ]]; then
   /usr/bin/sqlite3 ${epiphany_profile}/ephy-history.db \
