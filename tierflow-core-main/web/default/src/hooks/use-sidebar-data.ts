@@ -2,44 +2,29 @@
 Copyright (C) 2023-2026 TierFlow
 */
 import {
-  Activity,
   BarChart3,
-  Box,
   Boxes,
   CircleGauge,
   Key,
-  LifeBuoy,
-  Megaphone,
-  MessagesSquare,
-  Radio,
-  Route,
-  Settings,
-  User,
-  Users,
-  Wrench,
+  LayoutGrid,
+  ServerCog,
+  UsersRound,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/stores/auth-store'
-import { ROLE } from '@/lib/roles'
 import { type SidebarData } from '@/components/layout/types'
 
 /**
- * Root navigation groups for the application sidebar.
- *
- * These are shown when the URL does not match any nested sidebar view
- * registered in `layout/lib/sidebar-view-registry.ts`.
+ * Appliance navigation deliberately exposes only the tasks needed to operate
+ * a dedicated local inference device. Provider channels and routing profiles
+ * remain backend implementation details and are not user-selectable here.
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
-  const userRole = useAuthStore((s) => s.auth.user?.role)
-  const isSuperAdmin = userRole === ROLE.SUPER_ADMIN
 
   return {
     navGroups: [
-      // 一体机用户区保持扁平：首屏、API Key、通知、工单与账户。
-      // 管理员功能仍按域分组，便于在设备上执行模型与系统运维。
       {
-        id: 'user',
+        id: 'appliance',
         title: '',
         items: [
           {
@@ -48,103 +33,39 @@ export function useSidebarData(): SidebarData {
             icon: CircleGauge,
           },
           {
+            title: t('Model Services'),
+            url: '/model-services',
+            icon: Boxes,
+            adminOnly: true,
+          },
+          {
+            title: t('Skill Center'),
+            url: '/skills',
+            icon: LayoutGrid,
+          },
+          {
             title: t('API Keys'),
             url: '/keys',
             icon: Key,
           },
           {
-            title: t('System Notifications'),
-            url: '/notifications/system',
-            icon: Megaphone,
-          },
-          {
-            title: t('Ticket Records'),
-            url: '/notifications/tickets',
-            icon: MessagesSquare,
-          },
-          {
-            title: t('Profile'),
-            url: '/profile',
-            icon: User,
-          },
-        ],
-      },
-      // 管理员区:原 admin 单组按功能域拆为三组,统一由 adminOnly 门控
-      // (role >= ADMIN)。见 use-sidebar-view.ts 的角色过滤。
-      {
-        id: 'inference-services',
-        title: t('Inference Services'),
-        icon: Boxes,
-        adminOnly: true,
-        items: [
-          {
-            title: t('Channel Management'),
-            url: '/channels',
-            icon: Radio,
-          },
-          {
-            title: t('Routing Profiles'),
-            url: '/routing-profiles',
-            icon: Route,
-          },
-          {
-            title: t('Route Monitor'),
-            url: '/route-monitor',
-            icon: Activity,
-          },
-          {
-            title: t('Model Management'),
-            url: '/models/metadata',
-            icon: Box,
-          },
-        ],
-      },
-      {
-        id: 'access-audit',
-        title: t('Access & Audit'),
-        icon: Users,
-        adminOnly: true,
-        items: [
-          {
-            // 管理员查看全局推理分析;用户在 /usage 查看自己的调用活动。
             title: t('Inference Analytics'),
             url: '/dashboard/usage',
             activeUrls: ['/dashboard'],
             icon: BarChart3,
+            adminOnly: true,
           },
           {
             title: t('User Management'),
             url: '/users',
-            icon: Users,
+            icon: UsersRound,
+            adminOnly: true,
           },
-        ],
-      },
-      {
-        id: 'device-operations',
-        title: t('Device Operations'),
-        icon: Wrench,
-        adminOnly: true,
-        items: [
           {
-            title: t('Ticket Management'),
-            url: '/tickets',
-            activeUrls: ['/tickets'],
-            icon: LifeBuoy,
-          },
-          ...(isSuperAdmin
-            ? [
-                {
-                  title: t('Announcement Management'),
-                  url: '/announcements',
-                  icon: Megaphone,
-                },
-              ]
-            : []),
-          {
-            title: t('Appliance Settings'),
-            url: '/system-settings/models/inference',
-            activeUrls: ['/system-settings'],
-            icon: Settings,
+            title: t('Device Management'),
+            url: '/device-status',
+            icon: ServerCog,
+            adminOnly: true,
           },
         ],
       },

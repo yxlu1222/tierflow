@@ -1,0 +1,313 @@
+/*
+Copyright (C) 2023-2026 TierFlow
+*/
+import { Boxes, CircleGauge, Cpu, Network, Server } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { clampPercent, formatBytes, formatDuration } from '../lib'
+import type { ClusterModelStatus, ClusterNodeStatus } from '../types'
+
+interface ClusterDeviceOverviewProps {
+  nodes?: ClusterNodeStatus[]
+  loading: boolean
+  failed: boolean
+  message?: string
+}
+
+function SummaryCard(props: {
+  icon: typeof Server
+  label: string
+  value: string | number
+  detail: string
+}) {
+  const Icon = props.icon
+  return (
+    <Card className='gap-3'>
+      <CardContent className='flex items-center gap-4 pt-5'>
+        <div className='flex size-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700'>
+          <Icon className='size-5' aria-hidden='true' />
+        </div>
+        <div className='min-w-0'>
+          <p className='text-sm text-slate-500'>{props.label}</p>
+          <p className='mt-0.5 text-2xl font-semibold text-slate-950'>
+            {props.value}
+          </p>
+          <p className='truncate text-xs text-slate-500'>{props.detail}</p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function NodeMeter(props: {
+  label: string
+  value: number
+  detail: string
+  accent?: 'blue' | 'indigo' | 'emerald'
+}) {
+  const accentClass = {
+    blue: 'bg-blue-600',
+    indigo: 'bg-indigo-600',
+    emerald: 'bg-emerald-600',
+  }[props.accent ?? 'blue']
+  const value = clampPercent(props.value)
+
+  return (
+    <div>
+      <div className='mb-1.5 flex items-center justify-between gap-3 text-sm'>
+        <span className='font-medium text-slate-700'>{props.label}</span>
+        <span className='font-mono text-slate-500'>{value.toFixed(1)}%</span>
+      </div>
+      <div className='h-2 overflow-hidden rounded-full bg-slate-100'>
+        <div
+          className={`h-full rounded-full transition-[width] ${accentClass}`}
+          style={{ width: `${value}%` }}
+        />
+      </div>
+      <p className='mt-1.5 text-xs text-slate-500'>{props.detail}</p>
+    </div>
+  )
+}
+
+function isModelAvailable(model: ClusterModelStatus): boolean {
+  return model.state === 'active' && model.endpoint_healthy
+}
+
+function ClusterNodeCard(props: { node: ClusterNodeStatus }) {
+  const { t } = useTranslation()
+  const node = props.node
+  const online = node.status === 'online' && !node.stale
+  const memoryUsed = Math.max(
+    0,
+    node.memory_total_bytes - node.memory_available_bytes
+  )
+  const diskUsed = Math.max(
+    0,
+    node.disk_total_bytes - node.disk_available_bytes
+  )
+  const memoryPercent = node.memory_total_bytes
+    ? (memoryUsed / node.memory_total_bytes) * 100
+    : 0
+  const diskPercent = node.disk_total_bytes
+    ? (diskUsed / node.disk_total_bytes) * 100
+    : 0
+  const dedicatedCudaMemory = node.cuda_memory_total_bytes > 0
+  const cudaTotal = dedicatedCudaMemory
+    ? node.cuda_memory_total_bytes
+    : node.cuda_unified_memory_bytes
+  const cudaUsed = dedicatedCudaMemory
+    ? node.cuda_memory_used_bytes
+    : memoryUsed
+  const cudaPercent = cudaTotal ? (cudaUsed / cudaTotal) * 100 : 0
+  const availableModels = node.models.filter(isModelAvailable).length
+  const address = node.fabric_ip || node.wifi_ip
+  const lastSeenAge = Math.max(
+    0,
+    Math.floor(Date.now() / 1000) - node.last_seen_at
+  )
+
+  return (
+    <Card className='gap-4 overflow-hidden'>
+      <CardHeader className='border-b border-slate-100 pb-4'>
+        <div className='flex items-start justify-between gap-3'>
+          <div className='flex min-w-0 items-start gap-3'>
+            <div
+              className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+            >
+              <Server className='size-5' aria-hidden='true' />
+            </div>
+            <div className='min-w-0'>
+              <CardTitle className='truncate'>{node.name}</CardTitle>
+              <p className='mt-1 truncate text-sm text-slate-500'>
+                {node.hostname || t('Unknown host')}
+              </p>
+            </div>
+          </div>
+          <div className='flex flex-wrap justify-end gap-1.5'>
+            <Badge
+              className={
+                online
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-slate-100 text-slate-600'
+              }
+            >
+              {online ? t('Online') : t('Offline')}
+            </Badge>
+            <Badge variant='outline'>
+              {node.role === 'controller' ? t('Controller') : t('Worker')}
+            </Badge>
+            {node.draining && (
+              <Badge className='bg-amber-50 text-amber-700'>
+                {t('Draining')}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className='space-y-5'>
+        <div className='grid gap-3 rounded-xl bg-slate-50 p-3 text-sm sm:grid-cols-2'>
+          <div className='flex min-w-0 items-center gap-2'>
+            <Network className='size-4 shrink-0 text-slate-400' />
+            <span className='truncate font-mono text-slate-700'>
+              {address || t('No network address')}
+            </span>
+          </div>
+          <div className='text-left text-slate-500 sm:text-right'>
+            {t('Last seen')}: {formatDuration(lastSeenAge)} {t('ago')}
+          </div>
+        </div>
+
+        <div className='grid gap-4 sm:grid-cols-2'>
+          <NodeMeter
+            label={t('Unified memory')}
+            value={memoryPercent}
+            detail={`${formatBytes(memoryUsed)} / ${formatBytes(node.memory_total_bytes)}`}
+            accent='indigo'
+          />
+          <NodeMeter
+            label={t('Disk')}
+            value={diskPercent}
+            detail={`${formatBytes(diskUsed)} / ${formatBytes(node.disk_total_bytes)}`}
+            accent='emerald'
+          />
+        </div>
+
+        {node.cuda_available && (
+          <div className='rounded-xl border border-slate-100 p-3'>
+            <div className='mb-3 flex items-center gap-2 text-sm font-medium text-slate-700'>
+              <Cpu className='size-4 text-blue-600' />
+              <span className='truncate'>{node.cuda_name || 'NVIDIA GPU'}</span>
+            </div>
+            <NodeMeter
+              label={
+                dedicatedCudaMemory ? t('Video memory') : t('GPU shared memory')
+              }
+              value={cudaPercent}
+              detail={`${formatBytes(cudaUsed)} / ${formatBytes(cudaTotal)}`}
+            />
+          </div>
+        )}
+
+        <div>
+          <div className='mb-2 flex items-center justify-between gap-3'>
+            <span className='text-sm font-medium text-slate-700'>
+              {t('Registered models')}
+            </span>
+            <span className='text-xs text-slate-500'>
+              {t('{{available}} / {{total}} available', {
+                available: availableModels,
+                total: node.models.length,
+              })}
+            </span>
+          </div>
+          <div className='flex flex-wrap gap-1.5'>
+            {node.models.length === 0 ? (
+              <span className='text-sm text-slate-500'>
+                {t('No model registered')}
+              </span>
+            ) : (
+              node.models.map((model) => (
+                <Badge
+                  key={model.id}
+                  className={
+                    isModelAvailable(model)
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-slate-100 text-slate-600'
+                  }
+                >
+                  {model.display_name || model.id}
+                </Badge>
+              ))
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+export function ClusterDeviceOverview(props: ClusterDeviceOverviewProps) {
+  const { t } = useTranslation()
+  const nodes = props.nodes ?? []
+  const onlineNodes = nodes.filter(
+    (node) => node.status === 'online' && !node.stale
+  ).length
+  const workerNodes = nodes.filter((node) => node.role === 'worker').length
+  const availableModels = nodes.reduce(
+    (total, node) => total + node.models.filter(isModelAvailable).length,
+    0
+  )
+
+  if (props.loading) {
+    return (
+      <div className='grid gap-4 md:grid-cols-2 2xl:grid-cols-4'>
+        {Array.from({ length: 4 }, (_, index) => (
+          <Skeleton key={index} className='h-32 rounded-2xl' />
+        ))}
+      </div>
+    )
+  }
+
+  if (props.failed) {
+    return (
+      <Alert variant='destructive'>
+        <Server className='size-4' />
+        <AlertTitle>{t('Unable to load cluster devices')}</AlertTitle>
+        <AlertDescription>
+          {props.message || t('Check the node agents and try again.')}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  return (
+    <section className='space-y-4' aria-label={t('Cluster devices')}>
+      <div className='grid gap-4 sm:grid-cols-2 2xl:grid-cols-4'>
+        <SummaryCard
+          icon={Server}
+          label={t('Managed devices')}
+          value={nodes.length}
+          detail={t('Controller and worker nodes')}
+        />
+        <SummaryCard
+          icon={CircleGauge}
+          label={t('Online devices')}
+          value={onlineNodes}
+          detail={t('{{count}} offline', { count: nodes.length - onlineNodes })}
+        />
+        <SummaryCard
+          icon={Network}
+          label={t('Worker nodes')}
+          value={workerNodes}
+          detail={t('Connected compute devices')}
+        />
+        <SummaryCard
+          icon={Boxes}
+          label={t('Available model instances')}
+          value={availableModels}
+          detail={t('Healthy inference endpoints')}
+        />
+      </div>
+
+      {nodes.length === 0 ? (
+        <Alert>
+          <Server className='size-4' />
+          <AlertTitle>{t('No cluster device registered')}</AlertTitle>
+          <AlertDescription>
+            {t('Install and start a Node Agent to register a device.')}
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <div className='grid gap-4 xl:grid-cols-2'>
+          {nodes.map((node) => (
+            <ClusterNodeCard key={node.id} node={node} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}

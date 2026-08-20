@@ -209,6 +209,12 @@ func SetApiRouter(router *gin.Engine) {
 			performanceRoute.GET("/logs", controller.GetLogFiles)
 			performanceRoute.DELETE("/logs", controller.CleanupLogFiles)
 		}
+		applianceRoute := apiRouter.Group("/appliance")
+		applianceRoute.Use(middleware.AdminAuth())
+		{
+			applianceRoute.GET("/device/status", controller.GetApplianceDeviceStatus)
+			applianceRoute.GET("/model_services", controller.GetApplianceModelServices)
+		}
 		routingProfileRoute := apiRouter.Group("/routing_profile")
 		routingProfileRoute.Use(middleware.AdminAuth())
 		{

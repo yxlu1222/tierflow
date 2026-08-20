@@ -43,9 +43,11 @@ import { Route as AuthenticatedBillingIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
+import { Route as AuthenticatedDeviceStatusIndexRouteImport } from './routes/_authenticated/device-status/index'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedModelGroupsIndexRouteImport } from './routes/_authenticated/model-groups/index'
+import { Route as AuthenticatedModelServicesIndexRouteImport } from './routes/_authenticated/model-services/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedNotificationsTicketsRouteImport } from './routes/_authenticated/notifications/tickets'
@@ -55,6 +57,7 @@ import { Route as AuthenticatedRechargeIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedRouteMonitorIndexRouteImport } from './routes/_authenticated/route-monitor/index'
 import { Route as AuthenticatedRoutingProfilesIndexRouteImport } from './routes/_authenticated/routing-profiles/index'
+import { Route as AuthenticatedSkillsIndexRouteImport } from './routes/_authenticated/skills/index'
 import { Route as AuthenticatedSubscriptionIndexRouteImport } from './routes/_authenticated/subscription/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
@@ -254,6 +257,12 @@ const AuthenticatedDashboardSectionRoute =
     path: '/dashboard/$section',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDeviceStatusIndexRoute =
+  AuthenticatedDeviceStatusIndexRouteImport.update({
+    id: '/device-status/',
+    path: '/device-status/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedErrorsErrorRoute =
   AuthenticatedErrorsErrorRouteImport.update({
     id: '/errors/$error',
@@ -269,6 +278,12 @@ const AuthenticatedModelGroupsIndexRoute =
   AuthenticatedModelGroupsIndexRouteImport.update({
     id: '/model-groups/',
     path: '/model-groups/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedModelServicesIndexRoute =
+  AuthenticatedModelServicesIndexRouteImport.update({
+    id: '/model-services/',
+    path: '/model-services/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedModelsIndexRoute =
@@ -323,6 +338,12 @@ const AuthenticatedRoutingProfilesIndexRoute =
   AuthenticatedRoutingProfilesIndexRouteImport.update({
     id: '/routing-profiles/',
     path: '/routing-profiles/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSkillsIndexRoute =
+  AuthenticatedSkillsIndexRouteImport.update({
+    id: '/skills/',
+    path: '/skills/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSubscriptionIndexRoute =
@@ -500,8 +521,10 @@ export interface FileRoutesByFullPath {
   '/billing/': typeof AuthenticatedBillingIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/device-status/': typeof AuthenticatedDeviceStatusIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/model-groups/': typeof AuthenticatedModelGroupsIndexRoute
+  '/model-services/': typeof AuthenticatedModelServicesIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/orders/': typeof AuthenticatedOrdersIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
@@ -509,6 +532,7 @@ export interface FileRoutesByFullPath {
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/route-monitor/': typeof AuthenticatedRouteMonitorIndexRoute
   '/routing-profiles/': typeof AuthenticatedRoutingProfilesIndexRoute
+  '/skills/': typeof AuthenticatedSkillsIndexRoute
   '/subscription/': typeof AuthenticatedSubscriptionIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -568,8 +592,10 @@ export interface FileRoutesByTo {
   '/billing': typeof AuthenticatedBillingIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/device-status': typeof AuthenticatedDeviceStatusIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/model-groups': typeof AuthenticatedModelGroupsIndexRoute
+  '/model-services': typeof AuthenticatedModelServicesIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/orders': typeof AuthenticatedOrdersIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
@@ -577,6 +603,7 @@ export interface FileRoutesByTo {
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
   '/route-monitor': typeof AuthenticatedRouteMonitorIndexRoute
   '/routing-profiles': typeof AuthenticatedRoutingProfilesIndexRoute
+  '/skills': typeof AuthenticatedSkillsIndexRoute
   '/subscription': typeof AuthenticatedSubscriptionIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
@@ -640,8 +667,10 @@ export interface FileRoutesById {
   '/_authenticated/billing/': typeof AuthenticatedBillingIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/device-status/': typeof AuthenticatedDeviceStatusIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/model-groups/': typeof AuthenticatedModelGroupsIndexRoute
+  '/_authenticated/model-services/': typeof AuthenticatedModelServicesIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/orders/': typeof AuthenticatedOrdersIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
@@ -649,6 +678,7 @@ export interface FileRoutesById {
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/_authenticated/route-monitor/': typeof AuthenticatedRouteMonitorIndexRoute
   '/_authenticated/routing-profiles/': typeof AuthenticatedRoutingProfilesIndexRoute
+  '/_authenticated/skills/': typeof AuthenticatedSkillsIndexRoute
   '/_authenticated/subscription/': typeof AuthenticatedSubscriptionIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -711,8 +741,10 @@ export interface FileRouteTypes {
     | '/billing/'
     | '/channels/'
     | '/dashboard/'
+    | '/device-status/'
     | '/keys/'
     | '/model-groups/'
+    | '/model-services/'
     | '/models/'
     | '/orders/'
     | '/profile/'
@@ -720,6 +752,7 @@ export interface FileRouteTypes {
     | '/redemption-codes/'
     | '/route-monitor/'
     | '/routing-profiles/'
+    | '/skills/'
     | '/subscription/'
     | '/subscriptions/'
     | '/system-settings/'
@@ -779,8 +812,10 @@ export interface FileRouteTypes {
     | '/billing'
     | '/channels'
     | '/dashboard'
+    | '/device-status'
     | '/keys'
     | '/model-groups'
+    | '/model-services'
     | '/models'
     | '/orders'
     | '/profile'
@@ -788,6 +823,7 @@ export interface FileRouteTypes {
     | '/redemption-codes'
     | '/route-monitor'
     | '/routing-profiles'
+    | '/skills'
     | '/subscription'
     | '/subscriptions'
     | '/system-settings'
@@ -850,8 +886,10 @@ export interface FileRouteTypes {
     | '/_authenticated/billing/'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/device-status/'
     | '/_authenticated/keys/'
     | '/_authenticated/model-groups/'
+    | '/_authenticated/model-services/'
     | '/_authenticated/models/'
     | '/_authenticated/orders/'
     | '/_authenticated/profile/'
@@ -859,6 +897,7 @@ export interface FileRouteTypes {
     | '/_authenticated/redemption-codes/'
     | '/_authenticated/route-monitor/'
     | '/_authenticated/routing-profiles/'
+    | '/_authenticated/skills/'
     | '/_authenticated/subscription/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-settings/'
@@ -1144,6 +1183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardSectionRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/device-status/': {
+      id: '/_authenticated/device-status/'
+      path: '/device-status'
+      fullPath: '/device-status/'
+      preLoaderRoute: typeof AuthenticatedDeviceStatusIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/errors/$error': {
       id: '/_authenticated/errors/$error'
       path: '/errors/$error'
@@ -1163,6 +1209,13 @@ declare module '@tanstack/react-router' {
       path: '/model-groups'
       fullPath: '/model-groups/'
       preLoaderRoute: typeof AuthenticatedModelGroupsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/model-services/': {
+      id: '/_authenticated/model-services/'
+      path: '/model-services'
+      fullPath: '/model-services/'
+      preLoaderRoute: typeof AuthenticatedModelServicesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/models/': {
@@ -1226,6 +1279,13 @@ declare module '@tanstack/react-router' {
       path: '/routing-profiles'
       fullPath: '/routing-profiles/'
       preLoaderRoute: typeof AuthenticatedRoutingProfilesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/skills/': {
+      id: '/_authenticated/skills/'
+      path: '/skills'
+      fullPath: '/skills/'
+      preLoaderRoute: typeof AuthenticatedSkillsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/subscription/': {
@@ -1482,8 +1542,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBillingIndexRoute: typeof AuthenticatedBillingIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedDeviceStatusIndexRoute: typeof AuthenticatedDeviceStatusIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelGroupsIndexRoute: typeof AuthenticatedModelGroupsIndexRoute
+  AuthenticatedModelServicesIndexRoute: typeof AuthenticatedModelServicesIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedOrdersIndexRoute: typeof AuthenticatedOrdersIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
@@ -1491,6 +1553,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
   AuthenticatedRouteMonitorIndexRoute: typeof AuthenticatedRouteMonitorIndexRoute
   AuthenticatedRoutingProfilesIndexRoute: typeof AuthenticatedRoutingProfilesIndexRoute
+  AuthenticatedSkillsIndexRoute: typeof AuthenticatedSkillsIndexRoute
   AuthenticatedSubscriptionIndexRoute: typeof AuthenticatedSubscriptionIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedTicketsIndexRoute: typeof AuthenticatedTicketsIndexRoute
@@ -1517,8 +1580,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBillingIndexRoute: AuthenticatedBillingIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  AuthenticatedDeviceStatusIndexRoute: AuthenticatedDeviceStatusIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelGroupsIndexRoute: AuthenticatedModelGroupsIndexRoute,
+  AuthenticatedModelServicesIndexRoute: AuthenticatedModelServicesIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedOrdersIndexRoute: AuthenticatedOrdersIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
@@ -1528,6 +1593,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRouteMonitorIndexRoute: AuthenticatedRouteMonitorIndexRoute,
   AuthenticatedRoutingProfilesIndexRoute:
     AuthenticatedRoutingProfilesIndexRoute,
+  AuthenticatedSkillsIndexRoute: AuthenticatedSkillsIndexRoute,
   AuthenticatedSubscriptionIndexRoute: AuthenticatedSubscriptionIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedTicketsIndexRoute: AuthenticatedTicketsIndexRoute,
