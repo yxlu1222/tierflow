@@ -145,13 +145,9 @@ function ClusterNodeCard(props: {
     ? (diskUsed / node.disk_total_bytes) * 100
     : 0
   const dedicatedCudaMemory = node.cuda_memory_total_bytes > 0
-  const cudaTotal = dedicatedCudaMemory
-    ? node.cuda_memory_total_bytes
-    : node.cuda_unified_memory_bytes
-  const cudaUsed = dedicatedCudaMemory
-    ? node.cuda_memory_used_bytes
-    : memoryUsed
-  const cudaPercent = cudaTotal ? (cudaUsed / cudaTotal) * 100 : 0
+  const cudaPercent = dedicatedCudaMemory
+    ? (node.cuda_memory_used_bytes / node.cuda_memory_total_bytes) * 100
+    : 0
   const availableModels = node.models.filter(isModelAvailable).length
   const address = node.fabric_ip || node.wifi_ip
   const lastSeenTime = new Date(node.last_seen_at * 1000).toLocaleTimeString()
@@ -243,7 +239,7 @@ function ClusterNodeCard(props: {
           />
         </div>
 
-        {node.cuda_available && (
+        {node.cuda_available && dedicatedCudaMemory && (
           <div className='rounded-xl border border-slate-100 p-3'>
             <div className='mb-3 flex items-center gap-2 text-sm font-medium text-slate-700'>
               <MemoryStick className='size-4 text-blue-600' />
@@ -251,11 +247,9 @@ function ClusterNodeCard(props: {
             </div>
             <NodeMeter
               icon={MemoryStick}
-              label={
-                dedicatedCudaMemory ? t('Video memory') : t('GPU shared memory')
-              }
+              label={t('Video memory')}
               value={cudaPercent}
-              detail={`${formatBytes(cudaUsed)} / ${formatBytes(cudaTotal)}`}
+              detail={`${formatBytes(node.cuda_memory_used_bytes)} / ${formatBytes(node.cuda_memory_total_bytes)}`}
             />
           </div>
         )}

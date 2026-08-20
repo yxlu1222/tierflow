@@ -125,49 +125,116 @@ function Meter(props: {
   )
 }
 
+function DashboardDeviceCard(props: {
+  node: ClusterNodeStatus
+  deviceNumber: number
+}) {
+  const { t } = useTranslation()
+  const node = props.node
+  const online = node.status === 'online' && !node.stale
+  const memoryUsed = Math.max(
+    0,
+    node.memory_total_bytes - node.memory_available_bytes
+  )
+  const diskUsed = Math.max(
+    0,
+    node.disk_total_bytes - node.disk_available_bytes
+  )
+  const memoryUsage = node.memory_total_bytes
+    ? (memoryUsed / node.memory_total_bytes) * 100
+    : 0
+  const diskUsage = node.disk_total_bytes
+    ? (diskUsed / node.disk_total_bytes) * 100
+    : 0
+  const address = node.fabric_ip || node.wifi_ip
+
+  return (
+    <section className='overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm'>
+      <div className='flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50/90 to-white p-4'>
+        <div className='flex min-w-0 items-center gap-3'>
+          <div
+            className={`flex size-11 shrink-0 items-center justify-center rounded-xl font-mono text-lg font-semibold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+          >
+            {props.deviceNumber}
+          </div>
+          <div className='min-w-0'>
+            <p className='truncate text-base font-semibold text-slate-950'>
+              {node.name}
+            </p>
+            <p className='mt-0.5 truncate font-mono text-xs text-slate-500'>
+              {address || node.hostname || t('No network address')}
+            </p>
+          </div>
+        </div>
+        <div className='flex flex-wrap justify-end gap-1.5'>
+          <Badge
+            className={
+              online
+                ? 'bg-emerald-50 text-emerald-700'
+                : 'bg-slate-100 text-slate-600'
+            }
+          >
+            <span
+              className={`size-1.5 rounded-full ${online ? 'bg-emerald-500' : 'bg-slate-400'}`}
+            />
+            {online ? t('Online') : t('Offline')}
+          </Badge>
+          <Badge variant='outline'>
+            {node.role === 'controller' ? t('Controller') : t('Worker')}
+          </Badge>
+        </div>
+      </div>
+
+      <div className='grid gap-3 p-4 sm:grid-cols-2'>
+        <Meter
+          icon={Cpu}
+          label='CPU'
+          value={node.cpu_usage_percent}
+          detail={t('Current compute load')}
+        />
+        <Meter
+          icon={MemoryStick}
+          label={t('Unified memory')}
+          value={memoryUsage}
+          detail={`${formatBytes(memoryUsed)} / ${formatBytes(node.memory_total_bytes)}`}
+        />
+        <Meter
+          icon={Microchip}
+          label='GPU'
+          value={node.cuda_utilization_percent}
+          detail={
+            node.cuda_available
+              ? node.cuda_name || 'NVIDIA GPU'
+              : t('Not available')
+          }
+        />
+        <Meter
+          icon={HardDrive}
+          label={t('Disk')}
+          value={diskUsage}
+          detail={`${formatBytes(diskUsed)} / ${formatBytes(node.disk_total_bytes)}`}
+        />
+      </div>
+    </section>
+  )
+}
+
 export function DeviceSummary(props: {
   nodes?: ClusterNodeStatus[]
   loading: boolean
 }) {
   const { t } = useTranslation()
   const nodes = props.nodes ?? []
-  const onlineNodes = nodes.filter(
+  const orderedNodes = nodes.slice().sort((left, right) => {
+    if (left.role !== right.role) {
+      return left.role === 'controller' ? -1 : 1
+    }
+    if (left.id !== right.id) return left.id - right.id
+    return left.name.localeCompare(right.name)
+  })
+  const onlineCount = nodes.filter(
     (node) => node.status === 'online' && !node.stale
-  )
-  const controllerCount = nodes.filter(
-    (node) => node.role === 'controller'
   ).length
-  const workerCount = nodes.filter((node) => node.role === 'worker').length
-  const cpuUsage = onlineNodes.length
-    ? onlineNodes.reduce((sum, node) => sum + node.cpu_usage_percent, 0) /
-      onlineNodes.length
-    : 0
-  const memory = onlineNodes.reduce(
-    (summary, node) => ({
-      total: summary.total + node.memory_total_bytes,
-      used:
-        summary.used +
-        Math.max(0, node.memory_total_bytes - node.memory_available_bytes),
-    }),
-    { total: 0, used: 0 }
-  )
-  const disk = onlineNodes.reduce(
-    (summary, node) => ({
-      total: summary.total + node.disk_total_bytes,
-      used:
-        summary.used +
-        Math.max(0, node.disk_total_bytes - node.disk_available_bytes),
-    }),
-    { total: 0, used: 0 }
-  )
-  const gpuNodes = onlineNodes.filter((node) => node.cuda_available)
-  const gpuUsage = gpuNodes.length
-    ? gpuNodes.reduce((sum, node) => sum + node.cuda_utilization_percent, 0) /
-      gpuNodes.length
-    : 0
-  const memoryUsage = memory.total ? (memory.used / memory.total) * 100 : 0
-  const diskUsage = disk.total ? (disk.used / disk.total) * 100 : 0
-  const allOnline = nodes.length > 0 && onlineNodes.length === nodes.length
 
   return (
     <Card className='rounded-2xl'>
@@ -177,67 +244,29 @@ export function DeviceSummary(props: {
             {t('Device status summary')}
           </CardTitle>
           <p className='mt-1 text-sm text-slate-500'>
-            {t('{{online}} / {{total}} devices online', {
-              online: onlineNodes.length,
-              total: nodes.length,
-            })}
-            <span className='mx-2 text-slate-300'>·</span>
-            {t('{{controllers}} Controller · {{workers}} Worker', {
-              controllers: controllerCount,
-              workers: workerCount,
-            })}
+            {t('Controller and worker nodes')}
           </p>
         </div>
-        <Badge
-          className={
-            allOnline
-              ? 'bg-emerald-50 text-emerald-700'
-              : 'bg-amber-50 text-amber-700'
-          }
-        >
-          <span
-            className={`size-1.5 rounded-full ${allOnline ? 'bg-emerald-500' : 'bg-amber-500'}`}
-          />
-          {allOnline ? t('Running normally') : t('Needs attention')}
+        <Badge className='bg-emerald-50 text-emerald-700'>
+          {onlineCount} / {nodes.length} {t('Online')}
         </Badge>
       </CardHeader>
       <CardContent>
         {props.loading ? (
-          <div className='grid gap-3 sm:grid-cols-2'>
-            {Array.from({ length: 4 }, (_, index) => (
-              <Skeleton key={index} className='h-24 rounded-xl' />
+          <div className='grid gap-4 xl:grid-cols-2'>
+            {Array.from({ length: 2 }, (_, index) => (
+              <Skeleton key={index} className='h-80 rounded-2xl' />
             ))}
           </div>
         ) : nodes.length > 0 ? (
-          <div className='grid gap-3 sm:grid-cols-2'>
-            <Meter
-              icon={Cpu}
-              label='CPU'
-              value={cpuUsage}
-              detail={t('Average across {{count}} online devices', {
-                count: onlineNodes.length,
-              })}
-            />
-            <Meter
-              icon={MemoryStick}
-              label={t('Unified memory')}
-              value={memoryUsage}
-              detail={`${formatBytes(memory.used)} / ${formatBytes(memory.total)}`}
-            />
-            <Meter
-              icon={Microchip}
-              label='GPU'
-              value={gpuUsage}
-              detail={t('{{count}} GPU devices reporting', {
-                count: gpuNodes.length,
-              })}
-            />
-            <Meter
-              icon={HardDrive}
-              label={t('Disk')}
-              value={diskUsage}
-              detail={`${formatBytes(disk.used)} / ${formatBytes(disk.total)}`}
-            />
+          <div className='grid gap-4 xl:grid-cols-2'>
+            {orderedNodes.map((node, index) => (
+              <DashboardDeviceCard
+                key={node.id}
+                node={node}
+                deviceNumber={index + 1}
+              />
+            ))}
           </div>
         ) : (
           <p className='py-8 text-center text-base text-slate-500'>

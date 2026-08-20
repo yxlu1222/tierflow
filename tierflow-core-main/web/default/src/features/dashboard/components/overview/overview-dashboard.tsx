@@ -43,7 +43,7 @@ export function OverviewDashboard() {
         loading={appliance.overview.loading || appliance.performanceLoading}
       />
 
-      <div className='grid gap-4 xl:grid-cols-2'>
+      <div className='grid gap-4 2xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]'>
         <DeviceSummary
           nodes={appliance.clusterNodes}
           loading={appliance.clusterLoading}
