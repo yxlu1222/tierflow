@@ -9,7 +9,7 @@ ling_drop_in_dir=/etc/systemd/system/${ling_service}.d
 ling_drop_in=${ling_drop_in_dir}/cohost-readiness.conf
 ling_warmup=/usr/local/sbin/tierflow-warmup-ling30
 node_agent_config=/etc/tierflow/node-agent.json
-minimum_available_kib=$((40 * 1024 * 1024))
+minimum_available_kib=$((28 * 1024 * 1024))
 
 if [[ ${EUID} -ne 0 ]]; then
   echo "Run this script as root." >&2
@@ -45,7 +45,7 @@ wait_for_model() {
 }
 
 if [[ $(available_kib) -lt ${minimum_available_kib} ]]; then
-  echo "Refusing to configure co-hosting: less than 40 GiB host memory is available." >&2
+  echo "Refusing to configure co-hosting: less than 28 GiB host memory is available." >&2
   exit 1
 fi
 
@@ -78,33 +78,59 @@ done
 
 python3 - "${bind_ip}" <<'PY'
 import json
+import concurrent.futures
 import sys
 import urllib.request
 
 bind_ip = sys.argv[1]
-body = {
-    "model": "Ling-3.0-tiny",
-    "messages": [
-        {
-            "role": "user",
-            "content": "List concise facts about reliable local AI inference.",
-        }
-    ],
-    "temperature": 0.0,
-    "max_tokens": 64,
-    "ignore_eos": True,
-    "stream": True,
-    "stream_options": {"include_usage": True},
-}
-request = urllib.request.Request(
-    f"http://{bind_ip}:8106/v1/chat/completions",
-    json.dumps(body).encode("utf-8"),
-    {"Content-Type": "application/json"},
-    method="POST",
-)
-with urllib.request.urlopen(request, timeout=180) as response:
-    for _ in response:
-        pass
+
+def warm_request(index, prompt_tokens=0, max_tokens=64):
+    if prompt_tokens:
+        content = (
+            f"Unique warmup request {index}. Preserve this context independently. "
+            + "stable inference " * max(1, prompt_tokens // 2)
+        )
+    else:
+        content = f"Request {index}: list concise facts about local AI inference."
+    body = {
+        "model": "Ling-3.0-tiny",
+        "messages": [
+            {
+                "role": "user",
+                "content": content,
+            }
+        ],
+        "temperature": 0.0,
+        "max_tokens": max_tokens,
+        "ignore_eos": True,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+    request = urllib.request.Request(
+        f"http://{bind_ip}:8106/v1/chat/completions",
+        json.dumps(body).encode("utf-8"),
+        {"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=1800) as response:
+        for _ in response:
+            pass
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+    list(executor.map(lambda index: warm_request(index), range(16)))
+
+# KDA/Triton kernels used by long chunked-prefill requests are loaded lazily.
+# Load them before the LFM llama.cpp process opens a second CUDA context; on
+# DGX Spark, first-time Triton module loading alongside that context can fail
+# with "CUDA operation not permitted" even when ample memory remains.
+with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    list(
+        executor.map(
+            lambda index: warm_request(index, prompt_tokens=60000, max_tokens=1),
+            range(4),
+        )
+    )
 PY
 EOF
 chmod 0755 "${ling_warmup}"
@@ -137,8 +163,8 @@ ExecStart=/opt/tierflow/inference/bin/llama-server-nanbeige42 \
   --alias LFM2.5-2.6B \
   --host ${TIERFLOW_MODEL_BIND_IP} \
   --port 8105 \
-  --ctx-size 1048576 \
-  --parallel 8 \
+  --ctx-size 2097152 \
+  --parallel 16 \
   --override-kv lfm2.context_length=int:131072 \
   --gpu-layers 99 \
   --flash-attn on \
@@ -157,8 +183,8 @@ TimeoutStopSec=90
 KillSignal=SIGTERM
 LimitNOFILE=1048576
 UMask=0027
-MemoryHigh=24G
-MemoryMax=32G
+MemoryHigh=32G
+MemoryMax=40G
 MemorySwapMax=0
 OOMPolicy=stop
 
@@ -224,7 +250,7 @@ if ! wait_for_model "${ling_service}" "http://${bind_ip}:8106/v1/models" 240 2; 
 fi
 
 if [[ $(available_kib) -lt ${minimum_available_kib} ]]; then
-  echo "Ling is ready, but less than 40 GiB remains; LFM will not be started." >&2
+  echo "Ling is ready, but less than 28 GiB remains; LFM will not be started." >&2
   exit 1
 fi
 
@@ -237,7 +263,7 @@ fi
 
 if [[ $(available_kib) -lt ${minimum_available_kib} ]]; then
   systemctl stop "${cohost_lfm_service}" || true
-  echo "Less than 40 GiB remains after LFM startup; LFM was stopped." >&2
+  echo "Less than 28 GiB remains after LFM startup; LFM was stopped." >&2
   exit 1
 fi
 

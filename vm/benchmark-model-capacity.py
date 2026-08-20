@@ -29,9 +29,15 @@ def read_memory():
 
 def build_prompt(request_id, prompt_token_target):
     if prompt_token_target:
-        # LFM tokenizes "stable inference " as two tokens. Leave chat-template
-        # overhead outside the requested content-token target.
-        return "stable inference " * max(1, prompt_token_target // 2)
+        # Put a distinct marker at the start of every long request. Without it,
+        # concurrent requests share the same radix-cache prefix and substantially
+        # understate the unified-memory pressure of independent user contexts.
+        # Both deployed tokenizers encode "stable inference " close to two tokens;
+        # the server-reported prompt_tokens field remains the source of truth.
+        return (
+            f"Unique request {request_id}. Preserve this context independently. "
+            + "stable inference " * max(1, prompt_token_target // 2)
+        )
     return (
         f"Request {request_id}: write a long numbered list of concise, distinct facts "
         "about reliable local AI inference. Continue until the output limit."

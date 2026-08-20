@@ -32,8 +32,8 @@ ExecStart=/usr/bin/docker run --rm \
   --model-path /model \
   --served-model-name Ling-3.0-tiny \
   --context-length 131072 \
-  --mem-fraction-static 0.40 \
-  --max-running-requests 8 \
+  --mem-fraction-static 0.53 \
+  --max-running-requests 16 \
   --fp8-gemm-backend triton \
   --moe-runner-backend triton \
   --bf16-gemm-backend torch \

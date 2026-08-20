@@ -4,7 +4,7 @@ set -euo pipefail
 service=tierflow-model-lfm25-cohost.service
 ling_service=tierflow-model-ling30-tiny.service
 unit=/etc/systemd/system/${service}
-minimum_available_kib=$((40 * 1024 * 1024))
+minimum_available_kib=$((28 * 1024 * 1024))
 
 if [[ ${EUID} -ne 0 ]]; then
   echo "Run this script as root." >&2
@@ -26,8 +26,8 @@ if [[ ${context_per_slot} -lt 32768 || ${context_per_slot} -gt 131072 ]]; then
   echo "Context per slot must be between 32768 and the native 131072 limit." >&2
   exit 1
 fi
-if [[ ${parallel_slots} -lt 1 || ${parallel_slots} -gt 8 ]]; then
-  echo "Parallel slots must be between 1 and 8." >&2
+if [[ ${parallel_slots} -lt 1 || ${parallel_slots} -gt 16 ]]; then
+  echo "Parallel slots must be between 1 and 16." >&2
   exit 1
 fi
 
@@ -67,8 +67,8 @@ replacements = (
         r"--override-kv\s+lfm2\.context_length=int:\d+",
         f"--override-kv lfm2.context_length=int:{per_slot}",
     ),
-    (r"MemoryHigh=\d+G", "MemoryHigh=24G"),
-    (r"MemoryMax=\d+G", "MemoryMax=32G"),
+    (r"MemoryHigh=\d+G", "MemoryHigh=32G"),
+    (r"MemoryMax=\d+G", "MemoryMax=40G"),
 )
 for pattern, replacement in replacements:
     text, count = re.subn(pattern, replacement, text)
@@ -113,7 +113,7 @@ fi
 
 available_kib=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)
 if [[ ${available_kib} -lt ${minimum_available_kib} ]]; then
-  echo "Less than 40 GiB remains after startup." >&2
+  echo "Less than 28 GiB remains after startup." >&2
   false
 fi
 
