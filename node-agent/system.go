@@ -18,6 +18,72 @@ func commandOutput(ctx context.Context, name string, args ...string) (string, er
 	return strings.TrimSpace(string(out)), err
 }
 
+type cpuTimes struct {
+	idle  uint64
+	total uint64
+}
+
+func readCPUTimes() (cpuTimes, bool) {
+	f, err := os.Open("/proc/stat")
+	if err != nil {
+		return cpuTimes{}, false
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	if !scanner.Scan() {
+		return cpuTimes{}, false
+	}
+	fields := strings.Fields(scanner.Text())
+	if len(fields) < 5 || fields[0] != "cpu" {
+		return cpuTimes{}, false
+	}
+
+	values := make([]uint64, 0, len(fields)-1)
+	for _, field := range fields[1:] {
+		value, err := strconv.ParseUint(field, 10, 64)
+		if err != nil {
+			return cpuTimes{}, false
+		}
+		values = append(values, value)
+	}
+	var total uint64
+	for _, value := range values {
+		total += value
+	}
+	idle := values[3]
+	if len(values) > 4 {
+		idle += values[4]
+	}
+	return cpuTimes{idle: idle, total: total}, true
+}
+
+func readCPUStatus(ctx context.Context) cpuStatus {
+	first, ok := readCPUTimes()
+	if !ok {
+		return cpuStatus{}
+	}
+	select {
+	case <-ctx.Done():
+		return cpuStatus{}
+	case <-time.After(200 * time.Millisecond):
+	}
+	second, ok := readCPUTimes()
+	if !ok || second.total <= first.total || second.idle < first.idle {
+		return cpuStatus{}
+	}
+	totalDelta := second.total - first.total
+	idleDelta := second.idle - first.idle
+	usage := (1 - float64(idleDelta)/float64(totalDelta)) * 100
+	if usage < 0 {
+		usage = 0
+	}
+	if usage > 100 {
+		usage = 100
+	}
+	return cpuStatus{UsagePercent: usage}
+}
+
 func readMemoryStatus() memoryStatus {
 	f, err := os.Open("/proc/meminfo")
 	if err != nil {
@@ -54,7 +120,7 @@ func readDiskStatus(path string) diskStatus {
 }
 
 func readCUDAStatus(ctx context.Context, memory memoryStatus) cudaStatus {
-	out, err := commandOutput(ctx, "nvidia-smi", "--query-gpu=name,memory.total,memory.used", "--format=csv,noheader,nounits")
+	out, err := commandOutput(ctx, "nvidia-smi", "--query-gpu=name,utilization.gpu,memory.total,memory.used", "--format=csv,noheader,nounits")
 	if err != nil || out == "" {
 		return cudaStatus{}
 	}
@@ -65,12 +131,17 @@ func readCUDAStatus(ctx context.Context, memory memoryStatus) cudaStatus {
 		status.Name = strings.TrimSpace(parts[0])
 	}
 	if len(parts) > 1 {
-		if mb, err := strconv.ParseUint(strings.TrimSpace(parts[1]), 10, 64); err == nil {
-			status.MemoryTotalBytes = mb * 1024 * 1024
+		if utilization, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); err == nil {
+			status.UtilizationPercent = utilization
 		}
 	}
 	if len(parts) > 2 {
 		if mb, err := strconv.ParseUint(strings.TrimSpace(parts[2]), 10, 64); err == nil {
+			status.MemoryTotalBytes = mb * 1024 * 1024
+		}
+	}
+	if len(parts) > 3 {
+		if mb, err := strconv.ParseUint(strings.TrimSpace(parts[3]), 10, 64); err == nil {
 			status.MemoryUsedBytes = mb * 1024 * 1024
 		}
 	}

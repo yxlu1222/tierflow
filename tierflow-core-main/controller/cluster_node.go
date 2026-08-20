@@ -27,12 +27,17 @@ type clusterMemoryStatus struct {
 	UsedBytes      uint64 `json:"used_bytes"`
 }
 
+type clusterCPUStatus struct {
+	UsagePercent float64 `json:"usage_percent"`
+}
+
 type clusterCUDAStatus struct {
-	Available          bool   `json:"available"`
-	Name               string `json:"name"`
-	MemoryTotalBytes   uint64 `json:"memory_total_bytes"`
-	MemoryUsedBytes    uint64 `json:"memory_used_bytes"`
-	UnifiedMemoryBytes uint64 `json:"unified_memory_bytes"`
+	Available          bool    `json:"available"`
+	Name               string  `json:"name"`
+	UtilizationPercent float64 `json:"utilization_percent"`
+	MemoryTotalBytes   uint64  `json:"memory_total_bytes"`
+	MemoryUsedBytes    uint64  `json:"memory_used_bytes"`
+	UnifiedMemoryBytes uint64  `json:"unified_memory_bytes"`
 }
 
 type clusterDiskStatus struct {
@@ -63,6 +68,7 @@ type clusterHeartbeatRequest struct {
 	AgentURL     string               `json:"agent_url"`
 	AgentVersion string               `json:"agent_version"`
 	Draining     bool                 `json:"draining"`
+	CPU          clusterCPUStatus     `json:"cpu"`
 	Memory       clusterMemoryStatus  `json:"memory"`
 	CUDA         clusterCUDAStatus    `json:"cuda"`
 	Disk         clusterDiskStatus    `json:"disk"`
@@ -199,10 +205,12 @@ func ClusterHeartbeat(c *gin.Context) {
 		Status:                 "online",
 		Draining:               heartbeat.Draining,
 		AgentVersion:           heartbeat.AgentVersion,
+		CPUUsagePercent:        heartbeat.CPU.UsagePercent,
 		MemoryTotalBytes:       heartbeat.Memory.TotalBytes,
 		MemoryAvailableBytes:   heartbeat.Memory.AvailableBytes,
 		CUDAAvailable:          heartbeat.CUDA.Available,
 		CUDAName:               heartbeat.CUDA.Name,
+		CUDAUtilizationPercent: heartbeat.CUDA.UtilizationPercent,
 		CUDAMemoryTotalBytes:   heartbeat.CUDA.MemoryTotalBytes,
 		CUDAMemoryUsedBytes:    heartbeat.CUDA.MemoryUsedBytes,
 		CUDAUnifiedMemoryBytes: heartbeat.CUDA.UnifiedMemoryBytes,

@@ -86,6 +86,7 @@ func (a *Agent) routes() http.Handler {
 }
 
 func (a *Agent) collectStatus(ctx context.Context) nodeStatus {
+	cpu := readCPUStatus(ctx)
 	memory := readMemoryStatus()
 	commandCtx, cancel := context.WithTimeout(ctx, a.config.commandTimeout())
 	defer cancel()
@@ -103,6 +104,7 @@ func (a *Agent) collectStatus(ctx context.Context) nodeStatus {
 		AgentURL:     a.config.AdvertiseURL,
 		AgentVersion: agentVersion,
 		Draining:     draining,
+		CPU:          cpu,
 		Memory:       memory,
 		CUDA:         readCUDAStatus(commandCtx, memory),
 		Disk:         readDiskStatus(a.config.DiskPath),
@@ -205,6 +207,7 @@ func (a *Agent) handleModelVerify(w http.ResponseWriter, r *http.Request) {
 func (a *Agent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	status := a.collectStatus(r.Context())
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+	fmt.Fprintf(w, "tierflow_node_cpu_usage_percent %f\n", status.CPU.UsagePercent)
 	fmt.Fprintf(w, "tierflow_node_memory_total_bytes %d\n", status.Memory.TotalBytes)
 	fmt.Fprintf(w, "tierflow_node_memory_available_bytes %d\n", status.Memory.AvailableBytes)
 	fmt.Fprintf(w, "tierflow_node_disk_available_bytes %d\n", status.Disk.AvailableBytes)
@@ -212,6 +215,9 @@ func (a *Agent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "tierflow_node_draining 1")
 	} else {
 		fmt.Fprintln(w, "tierflow_node_draining 0")
+	}
+	if status.CUDA.Available {
+		fmt.Fprintf(w, "tierflow_node_gpu_utilization_percent %f\n", status.CUDA.UtilizationPercent)
 	}
 	fmt.Fprintf(w, "tierflow_node_heartbeat_success_total %d\n", a.heartbeatSuccess.Load())
 	fmt.Fprintf(w, "tierflow_node_heartbeat_failure_total %d\n", a.heartbeatFailure.Load())

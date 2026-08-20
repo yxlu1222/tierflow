@@ -2,7 +2,7 @@ package main
 
 import "time"
 
-const agentVersion = "0.1.0"
+const agentVersion = "0.2.0"
 
 type persistedState struct {
 	Draining bool `json:"draining"`
@@ -14,12 +14,17 @@ type memoryStatus struct {
 	UsedBytes      uint64 `json:"used_bytes"`
 }
 
+type cpuStatus struct {
+	UsagePercent float64 `json:"usage_percent"`
+}
+
 type cudaStatus struct {
-	Available          bool   `json:"available"`
-	Name               string `json:"name,omitempty"`
-	MemoryTotalBytes   uint64 `json:"memory_total_bytes,omitempty"`
-	MemoryUsedBytes    uint64 `json:"memory_used_bytes,omitempty"`
-	UnifiedMemoryBytes uint64 `json:"unified_memory_bytes,omitempty"`
+	Available          bool    `json:"available"`
+	Name               string  `json:"name,omitempty"`
+	UtilizationPercent float64 `json:"utilization_percent,omitempty"`
+	MemoryTotalBytes   uint64  `json:"memory_total_bytes,omitempty"`
+	MemoryUsedBytes    uint64  `json:"memory_used_bytes,omitempty"`
+	UnifiedMemoryBytes uint64  `json:"unified_memory_bytes,omitempty"`
 }
 
 type diskStatus struct {
@@ -50,6 +55,7 @@ type nodeStatus struct {
 	AgentURL     string        `json:"agent_url"`
 	AgentVersion string        `json:"agent_version"`
 	Draining     bool          `json:"draining"`
+	CPU          cpuStatus     `json:"cpu"`
 	Memory       memoryStatus  `json:"memory"`
 	CUDA         cudaStatus    `json:"cuda"`
 	Disk         diskStatus    `json:"disk"`

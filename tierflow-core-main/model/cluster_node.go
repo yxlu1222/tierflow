@@ -13,29 +13,31 @@ import (
 // state is reported by the node agent and stored as JSON text so migrations
 // remain compatible with SQLite, MySQL and PostgreSQL.
 type ClusterNode struct {
-	Id                     int    `json:"id" gorm:"primaryKey"`
-	Name                   string `json:"name" gorm:"type:varchar(128);uniqueIndex"`
-	Hostname               string `json:"hostname" gorm:"type:varchar(255)"`
-	Role                   string `json:"role" gorm:"type:varchar(32);default:'worker'"`
-	AgentURL               string `json:"agent_url" gorm:"column:agent_url;type:varchar(512)"`
-	FabricIP               string `json:"fabric_ip" gorm:"column:fabric_ip;type:varchar(64)"`
-	WifiIP                 string `json:"wifi_ip" gorm:"column:wifi_ip;type:varchar(64)"`
-	Status                 string `json:"status" gorm:"type:varchar(32);default:'offline';index"`
-	Draining               bool   `json:"draining" gorm:"default:false"`
-	AgentVersion           string `json:"agent_version" gorm:"type:varchar(32)"`
-	MemoryTotalBytes       uint64 `json:"memory_total_bytes"`
-	MemoryAvailableBytes   uint64 `json:"memory_available_bytes"`
-	CUDAAvailable          bool   `json:"cuda_available" gorm:"column:cuda_available;default:false"`
-	CUDAName               string `json:"cuda_name" gorm:"column:cuda_name;type:varchar(255)"`
-	CUDAMemoryTotalBytes   uint64 `json:"cuda_memory_total_bytes" gorm:"column:cuda_memory_total_bytes"`
-	CUDAMemoryUsedBytes    uint64 `json:"cuda_memory_used_bytes" gorm:"column:cuda_memory_used_bytes"`
-	CUDAUnifiedMemoryBytes uint64 `json:"cuda_unified_memory_bytes" gorm:"column:cuda_unified_memory_bytes"`
-	DiskTotalBytes         uint64 `json:"disk_total_bytes"`
-	DiskAvailableBytes     uint64 `json:"disk_available_bytes"`
-	ModelsJSON             string `json:"-" gorm:"column:models_json;type:text"`
-	LastSeenAt             int64  `json:"last_seen_at" gorm:"index"`
-	CreatedTime            int64  `json:"created_time" gorm:"autoCreateTime"`
-	UpdatedTime            int64  `json:"updated_time" gorm:"autoUpdateTime"`
+	Id                     int     `json:"id" gorm:"primaryKey"`
+	Name                   string  `json:"name" gorm:"type:varchar(128);uniqueIndex"`
+	Hostname               string  `json:"hostname" gorm:"type:varchar(255)"`
+	Role                   string  `json:"role" gorm:"type:varchar(32);default:'worker'"`
+	AgentURL               string  `json:"agent_url" gorm:"column:agent_url;type:varchar(512)"`
+	FabricIP               string  `json:"fabric_ip" gorm:"column:fabric_ip;type:varchar(64)"`
+	WifiIP                 string  `json:"wifi_ip" gorm:"column:wifi_ip;type:varchar(64)"`
+	Status                 string  `json:"status" gorm:"type:varchar(32);default:'offline';index"`
+	Draining               bool    `json:"draining" gorm:"default:false"`
+	AgentVersion           string  `json:"agent_version" gorm:"type:varchar(32)"`
+	CPUUsagePercent        float64 `json:"cpu_usage_percent" gorm:"column:cpu_usage_percent"`
+	MemoryTotalBytes       uint64  `json:"memory_total_bytes"`
+	MemoryAvailableBytes   uint64  `json:"memory_available_bytes"`
+	CUDAAvailable          bool    `json:"cuda_available" gorm:"column:cuda_available;default:false"`
+	CUDAName               string  `json:"cuda_name" gorm:"column:cuda_name;type:varchar(255)"`
+	CUDAUtilizationPercent float64 `json:"cuda_utilization_percent" gorm:"column:cuda_utilization_percent"`
+	CUDAMemoryTotalBytes   uint64  `json:"cuda_memory_total_bytes" gorm:"column:cuda_memory_total_bytes"`
+	CUDAMemoryUsedBytes    uint64  `json:"cuda_memory_used_bytes" gorm:"column:cuda_memory_used_bytes"`
+	CUDAUnifiedMemoryBytes uint64  `json:"cuda_unified_memory_bytes" gorm:"column:cuda_unified_memory_bytes"`
+	DiskTotalBytes         uint64  `json:"disk_total_bytes"`
+	DiskAvailableBytes     uint64  `json:"disk_available_bytes"`
+	ModelsJSON             string  `json:"-" gorm:"column:models_json;type:text"`
+	LastSeenAt             int64   `json:"last_seen_at" gorm:"index"`
+	CreatedTime            int64   `json:"created_time" gorm:"autoCreateTime"`
+	UpdatedTime            int64   `json:"updated_time" gorm:"autoUpdateTime"`
 }
 
 func GetAllClusterNodes() ([]*ClusterNode, error) {
@@ -116,10 +118,12 @@ func UpsertClusterNodeHeartbeat(node *ClusterNode) (*ClusterNode, error) {
 		"status":                    node.Status,
 		"draining":                  node.Draining,
 		"agent_version":             node.AgentVersion,
+		"cpu_usage_percent":         node.CPUUsagePercent,
 		"memory_total_bytes":        node.MemoryTotalBytes,
 		"memory_available_bytes":    node.MemoryAvailableBytes,
 		"cuda_available":            node.CUDAAvailable,
 		"cuda_name":                 node.CUDAName,
+		"cuda_utilization_percent":  node.CUDAUtilizationPercent,
 		"cuda_memory_total_bytes":   node.CUDAMemoryTotalBytes,
 		"cuda_memory_used_bytes":    node.CUDAMemoryUsedBytes,
 		"cuda_unified_memory_bytes": node.CUDAUnifiedMemoryBytes,

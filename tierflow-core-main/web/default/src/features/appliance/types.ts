@@ -85,10 +85,12 @@ export interface ClusterNodeStatus {
   status: 'online' | 'offline'
   draining: boolean
   agent_version: string
+  cpu_usage_percent: number
   memory_total_bytes: number
   memory_available_bytes: number
   cuda_available: boolean
   cuda_name: string
+  cuda_utilization_percent: number
   cuda_memory_total_bytes: number
   cuda_memory_used_bytes: number
   cuda_unified_memory_bytes: number

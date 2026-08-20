@@ -6,11 +6,8 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
   Box,
-  Cpu,
   Database,
-  HardDrive,
   MemoryStick,
-  Microchip,
   RefreshCw,
   Server,
   Thermometer,
@@ -209,49 +206,23 @@ export function DeviceStatus() {
             </Alert>
           ) : (
             <div className='space-y-4'>
-              <div className='grid gap-4 md:grid-cols-2 2xl:grid-cols-4'>
-                <ResourceMeter
-                  icon={Cpu}
-                  label='CPU'
-                  value={data.cpu.usage_percent}
-                  detail={`${data.cpu.logical_cores} ${t('logical cores')}`}
-                />
-                <ResourceMeter
-                  icon={MemoryStick}
-                  label={
-                    usesUnifiedGPUMemory ? t('Unified memory') : t('Memory')
-                  }
-                  value={data.memory.used_percent}
-                  detail={`${formatBytes(data.memory.used)} / ${formatBytes(data.memory.total)}`}
-                  accent='indigo'
-                />
-                <ResourceMeter
-                  icon={HardDrive}
-                  label={t('Disk')}
-                  value={data.disk.used_percent}
-                  detail={`${formatBytes(data.disk.used)} / ${formatBytes(data.disk.total)}`}
-                  accent='emerald'
-                />
-                <ResourceMeter
-                  icon={Microchip}
-                  label='GPU'
-                  value={
-                    data.gpus.items.length > 0
-                      ? data.gpus.items.reduce(
-                          (sum, gpu) => sum + (gpu.utilization_percent ?? 0),
-                          0
-                        ) / data.gpus.items.length
-                      : 0
-                  }
-                  detail={
-                    data.gpus.available
-                      ? t('{{count}} GPU detected', {
-                          count: data.gpus.items.length,
-                        })
-                      : t('Not detected in this environment')
-                  }
-                  accent='amber'
-                />
+              <div className='flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-4'>
+                <div className='flex min-w-0 items-center gap-3'>
+                  <div className='flex size-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 font-mono text-xl font-semibold text-white'>
+                    1
+                  </div>
+                  <div className='min-w-0'>
+                    <p className='text-sm font-medium text-blue-700'>
+                      {t('Controller')} · {t('Device information')}
+                    </p>
+                    <h2 className='truncate text-xl font-semibold text-slate-950'>
+                      {data.application.node_name || data.hostname}
+                    </h2>
+                  </div>
+                </div>
+                <Badge className='bg-emerald-50 text-emerald-700'>
+                  {t('Running')}
+                </Badge>
               </div>
 
               <div className='grid gap-4 xl:grid-cols-2'>

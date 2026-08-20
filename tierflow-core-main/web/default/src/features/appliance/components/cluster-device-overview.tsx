@@ -1,7 +1,16 @@
 /*
 Copyright (C) 2023-2026 TierFlow
 */
-import { Boxes, CircleGauge, Cpu, Network, Server } from 'lucide-react'
+import {
+  Activity,
+  Boxes,
+  CircleGauge,
+  Cpu,
+  HardDrive,
+  MemoryStick,
+  Network,
+  Server,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -43,27 +52,53 @@ function SummaryCard(props: {
 }
 
 function NodeMeter(props: {
+  icon: typeof Server
   label: string
   value: number
   detail: string
-  accent?: 'blue' | 'indigo' | 'emerald'
+  accent?: 'blue' | 'indigo' | 'emerald' | 'amber'
 }) {
-  const accentClass = {
-    blue: 'bg-blue-600',
-    indigo: 'bg-indigo-600',
-    emerald: 'bg-emerald-600',
+  const Icon = props.icon
+  const accentClasses = {
+    blue: {
+      bar: 'bg-blue-600',
+      icon: 'bg-blue-50 text-blue-700',
+    },
+    indigo: {
+      bar: 'bg-indigo-600',
+      icon: 'bg-indigo-50 text-indigo-700',
+    },
+    emerald: {
+      bar: 'bg-emerald-600',
+      icon: 'bg-emerald-50 text-emerald-700',
+    },
+    amber: {
+      bar: 'bg-amber-500',
+      icon: 'bg-amber-50 text-amber-700',
+    },
   }[props.accent ?? 'blue']
   const value = clampPercent(props.value)
 
   return (
-    <div>
-      <div className='mb-1.5 flex items-center justify-between gap-3 text-sm'>
-        <span className='font-medium text-slate-700'>{props.label}</span>
-        <span className='font-mono text-slate-500'>{value.toFixed(1)}%</span>
+    <div className='rounded-xl border border-slate-100 bg-white p-3'>
+      <div className='mb-3 flex items-center justify-between gap-3'>
+        <div className='flex min-w-0 items-center gap-2.5'>
+          <div
+            className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${accentClasses.icon}`}
+          >
+            <Icon className='size-4' aria-hidden='true' />
+          </div>
+          <span className='truncate text-sm font-medium text-slate-700'>
+            {props.label}
+          </span>
+        </div>
+        <span className='font-mono text-sm font-semibold text-slate-700'>
+          {value.toFixed(1)}%
+        </span>
       </div>
       <div className='h-2 overflow-hidden rounded-full bg-slate-100'>
         <div
-          className={`h-full rounded-full transition-[width] ${accentClass}`}
+          className={`h-full rounded-full transition-[width] ${accentClasses.bar}`}
           style={{ width: `${value}%` }}
         />
       </div>
@@ -76,7 +111,10 @@ function isModelAvailable(model: ClusterModelStatus): boolean {
   return model.state === 'active' && model.endpoint_healthy
 }
 
-function ClusterNodeCard(props: { node: ClusterNodeStatus }) {
+function ClusterNodeCard(props: {
+  node: ClusterNodeStatus
+  deviceNumber: number
+}) {
   const { t } = useTranslation()
   const node = props.node
   const online = node.status === 'online' && !node.stale
@@ -115,14 +153,15 @@ function ClusterNodeCard(props: { node: ClusterNodeStatus }) {
         <div className='flex items-start justify-between gap-3'>
           <div className='flex min-w-0 items-start gap-3'>
             <div
-              className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+              className={`mt-0.5 flex size-12 shrink-0 items-center justify-center rounded-xl font-mono text-xl font-semibold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+              aria-label={`Device ${props.deviceNumber}`}
             >
-              <Server className='size-5' aria-hidden='true' />
+              {props.deviceNumber}
             </div>
             <div className='min-w-0'>
               <CardTitle className='truncate'>{node.name}</CardTitle>
               <p className='mt-1 truncate text-sm text-slate-500'>
-                {node.hostname || t('Unknown host')}
+                #{props.deviceNumber} · {node.hostname || t('Unknown host')}
               </p>
             </div>
           </div>
@@ -161,28 +200,48 @@ function ClusterNodeCard(props: { node: ClusterNodeStatus }) {
           </div>
         </div>
 
-        <div className='grid gap-4 sm:grid-cols-2'>
+        <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
           <NodeMeter
+            icon={Cpu}
+            label='CPU'
+            value={node.cpu_usage_percent}
+            detail={t('Current compute load')}
+          />
+          <NodeMeter
+            icon={MemoryStick}
             label={t('Unified memory')}
             value={memoryPercent}
             detail={`${formatBytes(memoryUsed)} / ${formatBytes(node.memory_total_bytes)}`}
             accent='indigo'
           />
           <NodeMeter
+            icon={HardDrive}
             label={t('Disk')}
             value={diskPercent}
             detail={`${formatBytes(diskUsed)} / ${formatBytes(node.disk_total_bytes)}`}
             accent='emerald'
+          />
+          <NodeMeter
+            icon={Activity}
+            label={t('GPU utilization')}
+            value={node.cuda_utilization_percent}
+            detail={
+              node.cuda_available
+                ? node.cuda_name || 'NVIDIA GPU'
+                : t('Not available')
+            }
+            accent='amber'
           />
         </div>
 
         {node.cuda_available && (
           <div className='rounded-xl border border-slate-100 p-3'>
             <div className='mb-3 flex items-center gap-2 text-sm font-medium text-slate-700'>
-              <Cpu className='size-4 text-blue-600' />
+              <MemoryStick className='size-4 text-blue-600' />
               <span className='truncate'>{node.cuda_name || 'NVIDIA GPU'}</span>
             </div>
             <NodeMeter
+              icon={MemoryStick}
               label={
                 dedicatedCudaMemory ? t('Video memory') : t('GPU shared memory')
               }
@@ -233,6 +292,13 @@ function ClusterNodeCard(props: { node: ClusterNodeStatus }) {
 export function ClusterDeviceOverview(props: ClusterDeviceOverviewProps) {
   const { t } = useTranslation()
   const nodes = props.nodes ?? []
+  const orderedNodes = nodes.slice().sort((left, right) => {
+    if (left.role !== right.role) {
+      return left.role === 'controller' ? -1 : 1
+    }
+    if (left.id !== right.id) return left.id - right.id
+    return left.name.localeCompare(right.name)
+  })
   const onlineNodes = nodes.filter(
     (node) => node.status === 'online' && !node.stale
   ).length
@@ -303,8 +369,12 @@ export function ClusterDeviceOverview(props: ClusterDeviceOverviewProps) {
         </Alert>
       ) : (
         <div className='grid gap-4 xl:grid-cols-2'>
-          {nodes.map((node) => (
-            <ClusterNodeCard key={node.id} node={node} />
+          {orderedNodes.map((node, index) => (
+            <ClusterNodeCard
+              key={node.id}
+              node={node}
+              deviceNumber={index + 1}
+            />
           ))}
         </div>
       )}
