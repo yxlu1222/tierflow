@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { FIXED_THEME_PRESET } from '@/lib/fixed-theme'
-import { formatNumber, formatQuota } from '@/lib/format'
+import { formatNumber } from '@/lib/format'
 import { getRollingDateRange, type TimeGranularity } from '@/lib/time'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getUserQuotaDataByUsers } from '@/features/dashboard/api'
@@ -20,6 +20,7 @@ import {
   saveGranularity,
   processUserChartData,
 } from '@/features/dashboard/lib'
+import { isVisibleApplianceUsageRow } from '@/features/dashboard/lib/hit-model-group'
 import { ConsoleChartCard } from '../console-chart-card'
 import { ConsoleKpiStrip, type ConsoleKpiCell } from '../console-kpi-strip'
 import { PerformanceHealthPanel } from './performance-health-panel'
@@ -74,59 +75,65 @@ export function UserCharts() {
     staleTime: 60_000,
   })
 
+  const rows = useMemo(
+    () =>
+      isLoading
+        ? []
+        : (userData ?? []).filter((row) => isVisibleApplianceUsageRow(row)),
+    [userData, isLoading]
+  )
+
   // Per-user totals + per-time-bucket series, derived once and shared by the
   // KPI strip and the ranking card.
   const stats = useMemo(() => {
-    const rows = isLoading ? [] : (userData ?? [])
     const byUser = new Map<string, number>()
-    const byBucket = new Map<number, { spend: number; count: number }>()
+    const byBucket = new Map<number, { tokens: number; count: number }>()
 
     for (const item of rows) {
       const user = item.username || 'unknown'
-      byUser.set(user, (byUser.get(user) || 0) + (Number(item.quota) || 0))
+      byUser.set(user, (byUser.get(user) || 0) + (Number(item.token_used) || 0))
       const bucket = Number(item.created_at) || 0
-      const current = byBucket.get(bucket) ?? { spend: 0, count: 0 }
-      current.spend += Number(item.quota) || 0
+      const current = byBucket.get(bucket) ?? { tokens: 0, count: 0 }
+      current.tokens += Number(item.token_used) || 0
       current.count += Number(item.count) || 0
       byBucket.set(bucket, current)
     }
 
-    // A quota_data row only proves a request happened — free-model traffic
-    // records quota 0. Everything on this tab reads as "consumption", so users
-    // who spent nothing are dropped here rather than filtered at each consumer.
+    // Token usage is the appliance's user-facing usage unit. Users with only
+    // zero-token probes are not counted as active in this view.
     const ranked = Array.from(byUser.entries())
-      .filter(([, quota]) => quota > 0)
-      .map(([username, quota]) => ({ username, quota }))
-      .sort((a, b) => b.quota - a.quota)
-    const totalSpend = ranked.reduce((sum, u) => sum + u.quota, 0)
+      .filter(([, tokens]) => tokens > 0)
+      .map(([username, tokens]) => ({ username, tokens }))
+      .sort((a, b) => b.tokens - a.tokens)
+    const totalTokens = ranked.reduce((sum, user) => sum + user.tokens, 0)
     const activeUsers = ranked.length
     const buckets = Array.from(byBucket.keys()).sort((a, b) => a - b)
 
     return {
       ranked,
-      totalSpend,
+      totalTokens,
       activeUsers,
-      avgSpend: activeUsers > 0 ? totalSpend / activeUsers : 0,
+      avgTokens: activeUsers > 0 ? totalTokens / activeUsers : 0,
       topShare:
-        totalSpend > 0 && ranked.length > 0
-          ? (ranked[0].quota / totalSpend) * 100
+        totalTokens > 0 && ranked.length > 0
+          ? (ranked[0].tokens / totalTokens) * 100
           : 0,
       topUser: ranked[0]?.username ?? '',
-      spendSeries: buckets.map((b) => byBucket.get(b)?.spend ?? 0),
+      tokenSeries: buckets.map((b) => byBucket.get(b)?.tokens ?? 0),
       countSeries: buckets.map((b) => byBucket.get(b)?.count ?? 0),
     }
-  }, [userData, isLoading])
+  }, [rows])
 
   const trendSpec = useMemo(
     () =>
       processUserChartData(
-        isLoading ? [] : (userData ?? []),
+        rows,
         timeGranularity,
         t,
         topUserLimit,
         FIXED_THEME_PRESET
       ).spec_user_trend,
-    [userData, isLoading, timeGranularity, t, topUserLimit]
+    [rows, timeGranularity, t, topUserLimit]
   )
 
   const isEmpty = !isLoading && stats.ranked.length === 0
@@ -134,27 +141,27 @@ export function UserCharts() {
   const kpiCells: ConsoleKpiCell[] = [
     {
       key: 'active-users',
-      label: t('Active users'),
+      label: t('Token users'),
       value: formatNumber(stats.activeUsers),
-      sub: t('With consumption'),
+      sub: t('With token usage'),
       spark: stats.countSeries,
       sparkColor: 'var(--ov-accent)',
     },
     {
-      key: 'total-spend',
-      label: t('Total consumption'),
-      value: formatQuota(stats.totalSpend),
+      key: 'total-tokens',
+      label: t('Total Tokens'),
+      value: formatNumber(stats.totalTokens),
       sub: t('Selected range'),
-      spark: stats.spendSeries,
-      sparkColor: 'var(--ov-bad)',
+      spark: stats.tokenSeries,
+      sparkColor: 'var(--info)',
     },
     {
-      key: 'avg-spend',
-      label: t('Average per user'),
-      value: formatQuota(stats.avgSpend),
-      sub: t('Active users only'),
-      spark: stats.spendSeries,
-      sparkColor: 'var(--info)',
+      key: 'avg-tokens',
+      label: t('Average tokens per user'),
+      value: formatNumber(stats.avgTokens),
+      sub: t('Token users only'),
+      spark: stats.tokenSeries,
+      sparkColor: 'var(--ov-accent)',
     },
     {
       key: 'top-share',
@@ -247,14 +254,14 @@ export function UserCharts() {
       <div className='grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2'>
         <UserRankingCard
           users={stats.ranked.slice(0, topUserLimit)}
-          total={stats.totalSpend}
+          total={stats.totalTokens}
           loading={isLoading}
           isEmpty={isEmpty}
         />
         <ConsoleChartCard
-          title={t('User Consumption Trend')}
+          title={t('User Token Trend')}
           spec={trendSpec}
-          chartKey={`user-trend-${userData?.length ?? 0}`}
+          chartKey={`user-token-trend-${rows.length}`}
           loading={isLoading}
           isEmpty={isEmpty}
           specOverrides={{

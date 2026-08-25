@@ -45,6 +45,8 @@ export const userSchema = z.object({
   created_at: z.number().optional(),
   updated_at: z.number().optional(),
   last_login_at: z.number().optional(),
+  api_key_count: z.number().optional().default(0),
+  skill_count: z.number().optional().default(0),
   DeletedAt: z.any().nullable().optional(),
   remark: z.string().optional(),
 })
@@ -99,12 +101,7 @@ export interface UserFormData {
 }
 
 export type ManageUserAction =
-  | 'promote'
-  | 'demote'
-  | 'enable'
-  | 'disable'
-  | 'delete'
-  | 'add_quota'
+  'promote' | 'demote' | 'enable' | 'disable' | 'delete' | 'add_quota'
 
 export type QuotaAdjustMode = 'add' | 'subtract' | 'override'
 

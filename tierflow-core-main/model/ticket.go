@@ -81,6 +81,10 @@ type TicketMessage struct {
 	AuthorId   int    `json:"author_id" gorm:"index"`
 	AuthorRole string `json:"author_role" gorm:"type:varchar(16)"` // user | admin（写入时快照）
 	Content    string `json:"content" gorm:"type:text"`
+	// Retained for databases upgraded from the earlier ticket schema. Internal
+	// notes are no longer exposed by the product, but the compatibility flag
+	// lets detail queries safely hide any historical rows that used it.
+	IsInternalNote bool `json:"-" gorm:"column:is_internal_note;default:false;index"`
 	// Attachments 一期不启用，预留可空列以便二期实现附件而无需再迁移。
 	Attachments *string `json:"attachments,omitempty" gorm:"type:text"`
 	CreatedAt   int64   `json:"created_at" gorm:"bigint;index:idx_msg_ticket_created,priority:2"`

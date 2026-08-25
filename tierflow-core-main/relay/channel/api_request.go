@@ -484,7 +484,19 @@ func sendPingData(c *gin.Context, mutex *sync.Mutex) error {
 func DoRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http.Response, error) {
 	return doRequest(c, req, info)
 }
+
+func bindClientRequestContext(c *gin.Context, req *http.Request) *http.Request {
+	if req == nil || c == nil || c.Request == nil {
+		return req
+	}
+	return req.WithContext(c.Request.Context())
+}
+
 func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http.Response, error) {
+	// 上游请求必须继承客户端请求 Context。否则客户端断开或网关提前结束响应后，
+	// http.Transport 仍会继续读取上游流，本地推理任务也会继续占用 GPU 成为孤儿任务。
+	req = bindClientRequestContext(c, req)
+
 	var client *http.Client
 	var err error
 	if info.ChannelSetting.Proxy != "" {

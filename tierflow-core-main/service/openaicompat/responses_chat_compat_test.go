@@ -50,16 +50,13 @@ func TestResponsesRequestToChatCompletionsRequest_DeveloperRoleMappedToSystem(t 
 		t.Fatalf("convert err: %v", err)
 	}
 
-	// developer -> system, rewritten in place so order is preserved (no hoist/merge).
+	// instructions 与 developer 合并为唯一、置顶的 system 消息。
 	roles := rolesOfMessages(chat.Messages)
-	if len(roles) != 3 || roles[0] != "system" || roles[1] != "system" || roles[2] != "user" {
+	if len(roles) != 2 || roles[0] != "system" || roles[1] != "user" {
 		t.Fatalf("unexpected roles: %v", roles)
 	}
-	if chat.Messages[0].StringContent() != "be brief" {
-		t.Fatalf("instructions system content wrong: %q", chat.Messages[0].StringContent())
-	}
-	if chat.Messages[1].StringContent() != "follow codex policy" {
-		t.Fatalf("developer content not mapped to system: %q", chat.Messages[1].StringContent())
+	if chat.Messages[0].StringContent() != "be brief\n\nfollow codex policy" {
+		t.Fatalf("system instructions not merged: %q", chat.Messages[0].StringContent())
 	}
 }
 
@@ -79,11 +76,11 @@ func TestResponsesRequestToChatCompletionsRequest_DeveloperRoleMidConversationKe
 	}
 
 	roles := rolesOfMessages(chat.Messages)
-	if len(roles) != 4 || roles[0] != "user" || roles[1] != "assistant" || roles[2] != "system" || roles[3] != "user" {
-		t.Fatalf("mid-conversation developer should map to system in place: %v", roles)
+	if len(roles) != 4 || roles[0] != "system" || roles[1] != "user" || roles[2] != "assistant" || roles[3] != "user" {
+		t.Fatalf("mid-conversation developer should be moved to the leading system message: %v", roles)
 	}
-	if chat.Messages[2].StringContent() != "now be terse" {
-		t.Fatalf("mid-conversation instruction content lost: %q", chat.Messages[2].StringContent())
+	if chat.Messages[0].StringContent() != "now be terse" {
+		t.Fatalf("mid-conversation instruction content lost: %q", chat.Messages[0].StringContent())
 	}
 }
 
@@ -142,6 +139,87 @@ func TestResponsesRequestToChatCompletionsRequest_ToolsAndMultimodal(t *testing.
 	}
 }
 
+func TestResponsesRequestToChatCompletionsRequest_NamespaceToolsAndBuiltins(t *testing.T) {
+	req := &dto.OpenAIResponsesRequest{
+		Model: "m",
+		Input: json.RawMessage(`[{"role":"user","content":"lookup Alice"}]`),
+		Tools: json.RawMessage(`[
+			{"type":"namespace","name":"crm","description":"CRM tools","tools":[
+				{"type":"function","name":"lookup","description":"Lookup a customer","parameters":{"type":"object","properties":{"name":{"type":"string"}}}}
+			]},
+			{"type":"web_search"},
+			{"type":"function","name":"plain","parameters":{"type":"object"}}
+		]`),
+	}
+	chat, err := ResponsesRequestToChatCompletionsRequest(req)
+	if err != nil {
+		t.Fatalf("convert err: %v", err)
+	}
+	if len(chat.Tools) != 2 {
+		t.Fatalf("expected namespace function and plain function, got %+v", chat.Tools)
+	}
+	namespace, name, ok := DecodeResponsesNamespaceToolName(chat.Tools[0].Function.Name)
+	if !ok || namespace != "crm" || name != "lookup" {
+		t.Fatalf("namespace tool name is not reversible: encoded=%q namespace=%q name=%q ok=%v", chat.Tools[0].Function.Name, namespace, name, ok)
+	}
+	if chat.Tools[0].Function.Description != "Namespace: crm. CRM tools\nLookup a customer" {
+		t.Errorf("namespace description context lost: %q", chat.Tools[0].Function.Description)
+	}
+	if chat.Tools[1].Function.Name != "plain" {
+		t.Fatalf("plain function lost: %+v", chat.Tools[1])
+	}
+}
+
+func TestResponsesRequestToChatCompletionsRequest_NamespaceFunctionCallAndChoice(t *testing.T) {
+	req := &dto.OpenAIResponsesRequest{
+		Model: "m",
+		Input: json.RawMessage(`[
+			{"type":"function_call","call_id":"c1","namespace":"crm","name":"lookup","arguments":"{\"name\":\"Alice\"}"},
+			{"type":"function_call_output","call_id":"c1","output":"found"}
+		]`),
+		ToolChoice: json.RawMessage(`{"type":"function","namespace":"crm","name":"lookup"}`),
+	}
+	chat, err := ResponsesRequestToChatCompletionsRequest(req)
+	if err != nil {
+		t.Fatalf("convert err: %v", err)
+	}
+	calls := chat.Messages[0].ParseToolCalls()
+	if len(calls) != 1 {
+		t.Fatalf("namespace function call not mapped: %+v", chat.Messages)
+	}
+	namespace, name, ok := DecodeResponsesNamespaceToolName(calls[0].Function.Name)
+	if !ok || namespace != "crm" || name != "lookup" {
+		t.Fatalf("namespace function call name wrong: %q", calls[0].Function.Name)
+	}
+	choice, ok := chat.ToolChoice.(map[string]any)
+	if !ok {
+		t.Fatalf("tool choice type wrong: %#v", chat.ToolChoice)
+	}
+	function, ok := choice["function"].(map[string]any)
+	if !ok {
+		t.Fatalf("tool choice function wrong: %#v", choice)
+	}
+	namespace, name, ok = DecodeResponsesNamespaceToolName(function["name"].(string))
+	if !ok || namespace != "crm" || name != "lookup" {
+		t.Fatalf("namespace tool choice name wrong: %#v", function)
+	}
+}
+
+func TestResponsesRequestToChatCompletionsRequest_BuiltinToolChoiceFallsBackToAuto(t *testing.T) {
+	req := &dto.OpenAIResponsesRequest{
+		Model:      "m",
+		Input:      json.RawMessage(`"search"`),
+		ToolChoice: json.RawMessage(`{"type":"web_search"}`),
+	}
+	chat, err := ResponsesRequestToChatCompletionsRequest(req)
+	if err != nil {
+		t.Fatalf("convert err: %v", err)
+	}
+	if chat.ToolChoice != "auto" {
+		t.Fatalf("builtin tool choice should fall back to auto, got %#v", chat.ToolChoice)
+	}
+}
+
 func TestChatCompletionsResponseToResponsesResponse_Text(t *testing.T) {
 	msg := dto.Message{Role: "assistant"}
 	msg.SetStringContent("hello")
@@ -191,5 +269,32 @@ func TestChatCompletionsResponseToResponsesResponse_ToolCalls(t *testing.T) {
 	}
 	if string(out.Arguments) != `"{\"a\":1}"` {
 		t.Errorf("arguments should be JSON string value, got %s", out.Arguments)
+	}
+}
+
+func TestChatCompletionsResponseToResponsesResponse_NamespaceToolCall(t *testing.T) {
+	msg := dto.Message{Role: "assistant"}
+	msg.SetToolCalls([]dto.ToolCallRequest{{
+		ID:   "c1",
+		Type: "function",
+		Function: dto.FunctionRequest{
+			Name:      encodeResponsesNamespaceToolName("crm", "lookup"),
+			Arguments: `{"name":"Alice"}`,
+		},
+	}})
+	resp := &dto.OpenAITextResponse{
+		Model:   "m",
+		Choices: []dto.OpenAITextResponseChoice{{Message: msg, FinishReason: "tool_calls"}},
+	}
+	rr, _, err := ChatCompletionsResponseToResponsesResponse(resp, "rid", 123)
+	if err != nil {
+		t.Fatalf("convert err: %v", err)
+	}
+	if len(rr.Output) != 1 {
+		t.Fatalf("namespace tool output missing: %+v", rr.Output)
+	}
+	out := rr.Output[0]
+	if out.Namespace != "crm" || out.Name != "lookup" || out.CallId != "c1" {
+		t.Fatalf("namespace tool output not restored: %+v", out)
 	}
 }

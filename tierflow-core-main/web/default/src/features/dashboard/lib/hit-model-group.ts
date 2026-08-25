@@ -36,6 +36,20 @@ Copyright (C) 2023-2026 TierFlow
  */
 import type { QuotaDataItem } from '../types'
 
+const EXCLUDED_APPLIANCE_USAGE_MODELS = new Set(['gpt-5.6-luna'])
+
+/**
+ * Exclude legacy aliases that were written by earlier compatibility tests but
+ * were never real appliance workloads. Apply this before calculating totals so
+ * KPI, trend, model share and per-user statistics stay on the same footing.
+ */
+export function isVisibleApplianceUsageRow(row: QuotaDataItem): boolean {
+  return ![row.model_group, row.strategy]
+    .filter((name): name is string => typeof name === 'string')
+    .map((name) => name.trim().toLowerCase())
+    .some((name) => EXCLUDED_APPLIANCE_USAGE_MODELS.has(name))
+}
+
 export interface HitModelGroupSlice {
   /** 展示名:模型组名,即用户侧的规范模型名 */
   name: string
@@ -55,7 +69,10 @@ export function aggregateByHitModelGroup(
   const acc = new Map<string, HitModelGroupSlice>()
 
   for (const row of rows) {
-    const name = (row.model_group ?? '').trim()
+    if (!isVisibleApplianceUsageRow(row)) continue
+    // Appliance routing may be fixed to a concrete local model. In that mode
+    // model_group is intentionally empty, so use the requested model name.
+    const name = (row.model_group || row.strategy || '').trim()
     if (name === '') continue
     const existing = acc.get(name)
     const count = Number(row.count) || 0

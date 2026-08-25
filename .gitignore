@@ -15,7 +15,7 @@ id_ed25519*
 *.sqlite3
 *.log
 logs/
-data/
+/data/
 
 # Dependencies and build output
 node_modules/
@@ -24,6 +24,22 @@ coverage/
 .cache/
 .gocache/
 .gomodcache/
+**/__pycache__/
+*.py[cod]
+
+# Local experiment, report, and download workspaces
+artifacts/
+downloads/
+reports/
+tmp/
+tools/aria2/
+
+# Visual QA and benchmark run outputs
+docs/qa-*/
+vm/*.png
+vm/*-benchmark-*.json
+vm/*benchmark-*.json
+tierflow-*.png
 
 # Virtual machines, installation media, and diagnostic artifacts
 virtual-machines/

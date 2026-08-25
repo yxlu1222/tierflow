@@ -20,7 +20,6 @@ import (
 	"github.com/Zer0Echo/tierflow-core/types"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tidwall/gjson"
 )
 
 type ModelRequest struct {
@@ -200,18 +199,15 @@ func getModelFromJSONBody(c *gin.Context) (*ModelRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !gjson.ValidBytes(requestBody) {
-		return nil, errors.New("invalid JSON request body")
-	}
 
-	values := gjson.GetManyBytes(requestBody, "model", "group")
-	model, err := getJSONStringValue(values[0], "model")
-	if err != nil {
-		return nil, err
-	}
-	group, err := getJSONStringValue(values[1], "group")
-	if err != nil {
-		return nil, err
+	// Use the same JSON decoder as the relay handlers. gjson.ValidBytes is
+	// stricter about malformed UTF-8 than encoding/json, while tool results can
+	// occasionally contain such bytes. The standard decoder safely replaces
+	// invalid UTF-8 with U+FFFD and still rejects structurally invalid JSON with
+	// a useful syntax offset.
+	var modelRequest ModelRequest
+	if err := common.Unmarshal(requestBody, &modelRequest); err != nil {
+		return nil, fmt.Errorf("invalid JSON request body: %w", err)
 	}
 
 	if _, seekErr := storage.Seek(0, io.SeekStart); seekErr != nil {
@@ -219,20 +215,7 @@ func getModelFromJSONBody(c *gin.Context) (*ModelRequest, error) {
 	}
 	c.Request.Body = io.NopCloser(storage)
 
-	return &ModelRequest{
-		Model: model,
-		Group: group,
-	}, nil
-}
-
-func getJSONStringValue(result gjson.Result, field string) (string, error) {
-	if !result.Exists() || result.Type == gjson.Null {
-		return "", nil
-	}
-	if result.Type != gjson.String {
-		return "", fmt.Errorf("field %s must be a string", field)
-	}
-	return result.String(), nil
+	return &modelRequest, nil
 }
 
 func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {

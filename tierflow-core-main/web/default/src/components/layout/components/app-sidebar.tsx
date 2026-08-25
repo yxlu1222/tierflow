@@ -33,7 +33,7 @@ export function AppSidebar() {
     <Sidebar collapsible='none' className='border-r'>
       {view && <SidebarViewHeader view={view} />}
 
-      <SidebarContent className='[scrollbar-width:none] pt-4 pr-5 pb-4 pl-3 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'>
+      <SidebarContent className='[scrollbar-width:none] pt-5 pr-4 pb-5 pl-3 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'>
         <AnimatePresence mode='wait' initial={false}>
           <motion.div
             key={key}

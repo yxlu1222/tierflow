@@ -3,33 +3,19 @@ Copyright (C) 2023-2026 TierFlow
 */
 import { type ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
-import { formatQuota, formatTimestamp } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/format'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Progress } from '@/components/ui/progress'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { DataTableColumnHeader } from '@/components/data-table'
-import { GroupBadge } from '@/components/group-badge'
 import { LongText } from '@/components/long-text'
 import { StatusBadge } from '@/components/status-badge'
-import { TableId } from '@/components/table-id'
-import { USER_STATUSES, USER_ROLES, isUserDeleted } from '../constants'
-import { type User } from '../types'
+import { USER_ROLES } from '../constants'
+import type { User } from '../types'
 import { DataTableRowActions } from './data-table-row-actions'
-
-function getQuotaProgressColor(percentage: number): string {
-  if (percentage <= 10) return '[&_[data-slot=progress-indicator]]:bg-rose-500'
-  if (percentage <= 30) return '[&_[data-slot=progress-indicator]]:bg-amber-500'
-  return '[&_[data-slot=progress-indicator]]:bg-emerald-500'
-}
 
 export function useUsersColumns(): ColumnDef<User>[] {
   const { t } = useTranslation()
-  const columns: ColumnDef<User>[] = [
+
+  return [
     {
       id: 'select',
       header: ({ table }) => (
@@ -37,7 +23,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
           checked={table.getIsAllPageRowsSelected()}
           indeterminate={table.getIsSomePageRowsSelected()}
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label='Select all'
+          aria-label={t('Select all')}
           className='translate-y-[2px]'
         />
       ),
@@ -45,7 +31,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label='Select row'
+          aria-label={t('Select row')}
           className='translate-y-[2px]'
         />
       ),
@@ -54,174 +40,30 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { label: t('Select') },
     },
     {
-      accessorKey: 'uid',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title='UID' />
-      ),
-      cell: ({ row }) => {
-        // 仅展示对外 uid,不再暴露内部自增 id(内部操作仍走 row.original.id)
-        const uid = row.getValue('uid') as string | undefined
-        return <TableId value={uid || '-'} className='w-[110px]' />
-      },
-      meta: { label: 'UID', mobileHidden: true },
-    },
-    {
       accessorKey: 'username',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Username')} />
+        <DataTableColumnHeader column={column} title={t('User')} />
       ),
-      cell: ({ row }) => {
-        const username = row.getValue('username') as string
-        const displayName = row.original.display_name
-        const remark = row.original.remark
-
-        return (
-          <div className='flex min-w-[160px] flex-col gap-1'>
-            <div className='flex items-center gap-2'>
-              <LongText className='max-w-[140px] font-medium'>
-                {username}
-              </LongText>
-              {remark && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={<StatusBadge variant='success' copyable={false} />}
-                  >
-                    <LongText className='max-w-[80px]'>{remark}</LongText>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className='text-xs'>{remark}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-            {displayName && displayName !== username && (
-              <LongText className='text-muted-foreground max-w-[180px] text-xs'>
-                {displayName}
-              </LongText>
-            )}
+      cell: ({ row }) => (
+        <div className='flex min-w-[190px] items-center gap-3'>
+          <span className='flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-600'>
+            {(row.original.display_name || row.original.username)
+              .trim()
+              .slice(0, 1)
+              .toUpperCase()}
+          </span>
+          <div className='min-w-0'>
+            <LongText className='max-w-[180px] text-base font-medium text-slate-900'>
+              {row.original.display_name || row.original.username}
+            </LongText>
+            <LongText className='mt-0.5 max-w-[210px] text-sm text-slate-500'>
+              {row.original.email || row.original.username}
+            </LongText>
           </div>
-        )
-      },
+        </div>
+      ),
       enableHiding: false,
-      meta: { label: t('Username'), mobileTitle: true },
-    },
-    {
-      accessorKey: 'status',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Status')} />
-      ),
-      cell: ({ row }) => {
-        const user = row.original
-        const requestCount = user.request_count
-
-        const statusConfig = isUserDeleted(user)
-          ? USER_STATUSES.DELETED
-          : USER_STATUSES[user.status as keyof typeof USER_STATUSES]
-
-        if (!statusConfig) {
-          return null
-        }
-
-        return (
-          <Tooltip>
-            <TooltipTrigger render={<div className='cursor-help' />}>
-              <StatusBadge
-                label={t(statusConfig.labelKey)}
-                variant={statusConfig.variant}
-                copyable={false}
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className='text-xs'>
-                {t('Requests:')} {requestCount.toLocaleString()}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        )
-      },
-      filterFn: (row, id, value) => {
-        return value.includes(String(row.getValue(id)))
-      },
-      enableSorting: false,
-      meta: { label: t('Status'), mobileBadge: true },
-    },
-    {
-      id: 'quota',
-      accessorKey: 'quota',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Inference Quota')} />
-      ),
-      cell: ({ row }) => {
-        const user = row.original
-        const used = user.used_quota
-        const remaining = user.quota
-        const total = used + remaining
-        const percentage = total > 0 ? (remaining / total) * 100 : 0
-
-        if (total === 0) {
-          return (
-            <StatusBadge
-              label={t('No Inference Quota')}
-              variant='neutral'
-              copyable={false}
-            />
-          )
-        }
-
-        return (
-          <Tooltip>
-            <TooltipTrigger
-              render={<div className='w-[150px] cursor-help space-y-1' />}
-            >
-              <div className='flex justify-between text-xs'>
-                <span className='font-medium tabular-nums'>
-                  {formatQuota(remaining)}
-                </span>
-                <span className='text-muted-foreground tabular-nums'>
-                  {formatQuota(total)}
-                </span>
-              </div>
-              <Progress
-                value={percentage}
-                className={cn('h-1.5', getQuotaProgressColor(percentage))}
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <div className='space-y-1 text-xs'>
-                <div>
-                  {t('Used:')} {formatQuota(used)}
-                </div>
-                <div>
-                  {t('Remaining:')} {formatQuota(remaining)}
-                </div>
-                <div>
-                  {t('Total:')} {formatQuota(total)}
-                </div>
-                <div>
-                  {t('Percentage:')} {percentage.toFixed(1)}%
-                </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        )
-      },
-      meta: { label: t('Inference Quota') },
-    },
-    {
-      accessorKey: 'group',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Group')} />
-      ),
-      cell: ({ row }) => {
-        const group = row.getValue('group') as string
-        return <GroupBadge group={group} />
-      },
-      filterFn: (row, id, value) => {
-        const group = String(row.getValue(id) || t('User Group')).toLowerCase()
-        const searchValue = String(value).toLowerCase()
-        return group.includes(searchValue)
-      },
-      meta: { label: t('Group') },
+      meta: { label: t('User'), mobileTitle: true },
     },
     {
       accessorKey: 'role',
@@ -229,57 +71,59 @@ export function useUsersColumns(): ColumnDef<User>[] {
         <DataTableColumnHeader column={column} title={t('Role')} />
       ),
       cell: ({ row }) => {
-        const roleValue = row.getValue('role') as number
-        const roleConfig = USER_ROLES[roleValue as keyof typeof USER_ROLES]
-
-        if (!roleConfig) {
-          return null
-        }
-
+        const role = USER_ROLES[row.original.role as keyof typeof USER_ROLES]
+        if (!role) return '-'
+        const Icon = role.icon
         return (
-          <div className='flex items-center gap-x-2'>
-            {roleConfig.icon && (
-              <roleConfig.icon size={16} className='text-muted-foreground' />
-            )}
-            <span className='text-sm'>{t(roleConfig.labelKey)}</span>
+          <div className='flex items-center gap-2 text-base text-slate-700'>
+            <Icon className='size-4 text-slate-400' />
+            {t(role.labelKey)}
           </div>
         )
       },
-      filterFn: (row, id, value) => {
-        return value.includes(String(row.getValue(id)))
-      },
+      filterFn: (row, id, value) => value.includes(String(row.getValue(id))),
       enableSorting: false,
       meta: { label: t('Role') },
     },
     {
-      accessorKey: 'created_at',
+      accessorKey: 'used_quota',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Created At')} />
+        <DataTableColumnHeader column={column} title={t('Token usage')} />
       ),
-      cell: ({ row }) => {
-        const ts = row.getValue('created_at') as number | undefined
-        return (
-          <span className='text-muted-foreground text-sm'>
-            {ts ? formatTimestamp(ts) : '-'}
-          </span>
-        )
-      },
-      meta: { label: t('Created At'), mobileHidden: true },
+      cell: ({ row }) => (
+        <span className='font-mono text-base font-semibold text-slate-800 tabular-nums'>
+          {formatNumber(Number(row.original.used_quota || 0))}
+        </span>
+      ),
+      meta: { label: t('Token usage') },
     },
     {
-      accessorKey: 'last_login_at',
+      accessorKey: 'skill_count',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Last Login')} />
+        <DataTableColumnHeader column={column} title={t('Skills')} />
       ),
-      cell: ({ row }) => {
-        const ts = row.getValue('last_login_at') as number | undefined
-        return (
-          <span className='text-muted-foreground text-sm'>
-            {ts ? formatTimestamp(ts) : '-'}
-          </span>
-        )
-      },
-      meta: { label: t('Last Login'), mobileHidden: true },
+      cell: ({ row }) => (
+        <StatusBadge
+          label={t('{{count}} Skills', {
+            count: Number(row.original.skill_count || 0),
+          })}
+          variant='neutral'
+          copyable={false}
+        />
+      ),
+      meta: { label: t('Skills') },
+    },
+    {
+      accessorKey: 'api_key_count',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('API Keys')} />
+      ),
+      cell: ({ row }) => (
+        <span className='font-mono text-base font-semibold text-blue-600 tabular-nums'>
+          {formatNumber(Number(row.original.api_key_count || 0))}
+        </span>
+      ),
+      meta: { label: t('API Keys') },
     },
     {
       id: 'actions',
@@ -287,6 +131,4 @@ export function useUsersColumns(): ColumnDef<User>[] {
       meta: { label: t('Actions') },
     },
   ]
-
-  return columns
 }

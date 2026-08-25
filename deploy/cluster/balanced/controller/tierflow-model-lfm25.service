@@ -1,0 +1,62 @@
+[Unit]
+Description=TierFlow LFM2.5-2.6B balanced co-host service for Qwen3.8-27B
+Wants=network-online.target
+Requires=tierflow-model-qwen38.service
+After=network-online.target tierflow-model-qwen38.service
+Conflicts=tierflow-model-nanbeige42.service tierflow-model-deepseek-v4-flash.service tierflow-model-nemotron35-lightning.service tierflow-model-ling30-tiny.service
+
+[Service]
+Type=simple
+User=tierflow-inference
+Group=tierflow-inference
+SupplementaryGroups=tierflow video render
+WorkingDirectory=/var/lib/tierflow/models/lfm2.5-2.6b-gguf
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=GGML_CUDA_ENABLE_UNIFIED_MEMORY=1
+ExecStartPre=/usr/local/sbin/tierflow-wait-model-ready tierflow-model-qwen38.service http://127.0.0.1:8102/v1/models 900
+ExecStart=/opt/tierflow/inference/bin/llama-server-nanbeige42 \
+  --model /var/lib/tierflow/models/lfm2.5-2.6b-gguf/LFM2.5-2.6B-Q4_K_M.gguf \
+  --alias LFM2.5-2.6B \
+  --host 127.0.0.1 \
+  --port 8105 \
+  --ctx-size 2097152 \
+  --parallel 16 \
+  --override-kv lfm2.context_length=int:131072 \
+  --gpu-layers 99 \
+  --flash-attn on \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --temp 0.1 \
+  --top-k 50 \
+  --repeat-penalty 1.1 \
+  --cont-batching \
+  --metrics \
+  --no-webui
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=900
+TimeoutStopSec=90
+KillSignal=SIGTERM
+LimitNOFILE=1048576
+UMask=0027
+MemoryHigh=32G
+MemoryMax=40G
+MemorySwapMax=0
+OOMPolicy=stop
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectControlGroups=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadOnlyPaths=/var/lib/tierflow/models/lfm2.5-2.6b-gguf
+ReadWritePaths=/var/log/tierflow-models /var/lib/tierflow-inference
+
+[Install]
+WantedBy=multi-user.target

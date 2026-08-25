@@ -23,7 +23,7 @@ type ApplianceServiceCardsProps = {
 }
 
 const cardClass =
-  'rounded-[18px] border border-slate-200/80 bg-white p-5 shadow-[0_10px_34px_rgba(15,23,42,0.04)]'
+  'rounded-[20px] border border-slate-200/80 bg-white p-6 shadow-[0_10px_34px_rgba(15,23,42,0.04)]'
 
 export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
   const { t } = useTranslation()
@@ -35,14 +35,14 @@ export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
       <section className={cardClass}>
         <div className='flex items-start justify-between gap-3'>
           <div className='flex items-center gap-3'>
-            <span className='flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600'>
-              <Cpu className='size-5' />
+            <span className='flex size-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600'>
+              <Cpu className='size-5.5' />
             </span>
             <div>
-              <h2 className='text-[15px] font-semibold text-slate-950'>
+              <h2 className='text-lg font-semibold text-slate-950'>
                 {t('Model services')}
               </h2>
-              <p className='mt-0.5 text-xs text-slate-500'>
+              <p className='mt-1 text-sm text-slate-500'>
                 {t('Models exposed by this appliance')}
               </p>
             </div>
@@ -53,8 +53,7 @@ export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
               size='icon-sm'
               onClick={() =>
                 void navigate({
-                  to: '/models/$section',
-                  params: { section: 'metadata' },
+                  to: '/model-services',
                 })
               }
               aria-label={t('Manage model services')}
@@ -73,10 +72,10 @@ export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
         ) : (
           <>
             <div className='mt-5 flex items-baseline gap-2'>
-              <span className='font-mono text-3xl font-semibold tracking-tight text-blue-600 tabular-nums'>
+              <span className='font-mono text-4xl font-semibold tracking-tight text-blue-600 tabular-nums'>
                 {formatNumber(props.modelCount)}
               </span>
-              <span className='text-sm text-slate-500'>
+              <span className='text-base text-slate-500'>
                 {t('models available')}
               </span>
             </div>
@@ -93,9 +92,9 @@ export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
                 </div>
               ))}
               {props.modelCount === 0 && (
-                <p className='text-sm leading-6 text-slate-500'>
+                <p className='text-base leading-7 text-slate-500'>
                   {props.isAdmin
-                    ? t('No model is deployed yet. Add a channel to begin.')
+                    ? t('No model service is available yet. Contact system maintenance personnel.')
                     : t(
                         'No model is available yet. Contact the appliance administrator.'
                       )}
@@ -109,14 +108,14 @@ export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
       <section className={cardClass}>
         <div className='flex items-start justify-between gap-3'>
           <div className='flex items-center gap-3'>
-            <span className='flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600'>
-              <KeyRound className='size-5' />
+            <span className='flex size-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600'>
+              <KeyRound className='size-5.5' />
             </span>
             <div>
-              <h2 className='text-[15px] font-semibold text-slate-950'>
+              <h2 className='text-lg font-semibold text-slate-950'>
                 {t('API access')}
               </h2>
-              <p className='mt-0.5 text-xs text-slate-500'>
+              <p className='mt-1 text-sm text-slate-500'>
                 {props.apiKeysLoading
                   ? t('Loading API keys')
                   : t('{{count}} API keys issued', {
@@ -128,9 +127,9 @@ export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
         </div>
 
         <div className='mt-5'>
-          <p className='text-xs font-medium text-slate-500'>Base URL</p>
+          <p className='text-sm font-medium text-slate-500'>Base URL</p>
           <div className='mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 p-2 pl-3'>
-            <code className='min-w-0 flex-1 truncate text-[13px] text-slate-700'>
+            <code className='min-w-0 flex-1 truncate text-sm text-slate-700'>
               {props.apiBaseUrl}
             </code>
             <Button
@@ -168,14 +167,14 @@ export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
       <section className={cardClass}>
         <div className='flex items-start justify-between gap-3'>
           <div className='flex items-center gap-3'>
-            <span className='flex size-10 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700'>
-              <Network className='size-5' />
+            <span className='flex size-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700'>
+              <Network className='size-5.5' />
             </span>
             <div>
-              <h2 className='text-[15px] font-semibold text-slate-950'>
+              <h2 className='text-lg font-semibold text-slate-950'>
                 {t('Inference activity')}
               </h2>
-              <p className='mt-0.5 text-xs text-slate-500'>
+              <p className='mt-1 text-sm text-slate-500'>
                 {t('Last 7 days')}
               </p>
             </div>
@@ -190,21 +189,21 @@ export function ApplianceServiceCards(props: ApplianceServiceCardsProps) {
         ) : (
           <dl className='mt-5 grid grid-cols-2 gap-3'>
             <div className='rounded-xl bg-slate-50 p-3.5'>
-              <dt className='text-xs text-slate-500'>{t('Requests')}</dt>
-              <dd className='mt-2 font-mono text-2xl font-semibold tracking-tight text-slate-950 tabular-nums'>
+              <dt className='text-sm text-slate-500'>{t('Requests')}</dt>
+              <dd className='mt-2 font-mono text-3xl font-semibold tracking-tight text-slate-950 tabular-nums'>
                 {formatNumber(props.requestCount)}
               </dd>
             </div>
             <div className='rounded-xl bg-slate-50 p-3.5'>
-              <dt className='text-xs text-slate-500'>{t('Tokens')}</dt>
-              <dd className='mt-2 font-mono text-2xl font-semibold tracking-tight text-slate-950 tabular-nums'>
+              <dt className='text-sm text-slate-500'>{t('Tokens')}</dt>
+              <dd className='mt-2 font-mono text-3xl font-semibold tracking-tight text-slate-950 tabular-nums'>
                 {formatNumber(props.tokenCount)}
               </dd>
             </div>
           </dl>
         )}
 
-        <p className='mt-4 text-sm leading-6 text-slate-500'>
+        <p className='mt-4 text-base leading-7 text-slate-500'>
           {t(
             'Usage data stays on the appliance and helps operators verify service health.'
           )}

@@ -1,0 +1,50 @@
+[Unit]
+Description=TierFlow Qwen3.8-27B NVFP4 inference service (SGLang)
+Wants=network-online.target
+Requires=docker.service
+After=network-online.target docker.service
+Conflicts=tierflow-model-nanbeige42.service
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm -f tierflow-model-qwen38-nvfp4
+ExecStart=/usr/bin/docker run --rm \
+  --name tierflow-model-qwen38-nvfp4 \
+  --gpus all \
+  --network host \
+  --ipc host \
+  --ulimit memlock=-1 \
+  --ulimit stack=67108864 \
+  --stop-timeout 120 \
+  -e HF_HUB_OFFLINE=1 \
+  -e TRANSFORMERS_OFFLINE=1 \
+  -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+  -v /var/lib/tierflow/models/qwen3.8-27b-nvfp4:/model:ro \
+  -v /var/cache/tierflow-sglang:/root/.cache/sglang \
+  lmsysorg/sglang:qwen38-27b \
+  sglang serve \
+  --trust-remote-code \
+  --model-path /model \
+  --served-model-name Qwen3.8-27B \
+  --context-length 262144 \
+  --mem-fraction-static 0.75 \
+  --attention-backend flashinfer \
+  --chunked-prefill-size 8192 \
+  --disable-prefill-cuda-graph \
+  --mamba-ssm-dtype bfloat16 \
+  --mm-feature-transport cpu \
+  --reasoning-parser qwen3 \
+  --tool-call-parser qwen3_coder \
+  --enable-metrics \
+  --host 127.0.0.1 \
+  --port 8102
+ExecStop=-/usr/bin/docker stop -t 120 tierflow-model-qwen38-nvfp4
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=1800
+TimeoutStopSec=180
+KillMode=process
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

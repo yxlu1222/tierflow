@@ -46,6 +46,11 @@ func ChatCompletionsResponseToResponsesResponse(resp *dto.OpenAITextResponse, re
 		if name == "" {
 			continue
 		}
+		namespace := ""
+		if decodedNamespace, decodedName, ok := DecodeResponsesNamespaceToolName(name); ok {
+			namespace = decodedNamespace
+			name = decodedName
+		}
 		callID := strings.TrimSpace(tc.ID)
 		if callID == "" {
 			callID = fmt.Sprintf("call_%s_%d", respID, i)
@@ -56,6 +61,7 @@ func ChatCompletionsResponseToResponsesResponse(resp *dto.OpenAITextResponse, re
 			Status:    "completed",
 			CallId:    callID,
 			Name:      name,
+			Namespace: namespace,
 			Arguments: argumentsStringToRaw(tc.Function.Arguments),
 		})
 	}

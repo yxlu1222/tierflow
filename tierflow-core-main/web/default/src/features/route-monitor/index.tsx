@@ -56,13 +56,11 @@ export function RouteMonitor() {
   }, [])
 
   useEffect(() => {
-    load()
-  }, [load])
-
-  useEffect(() => {
     if (live) {
+      const initialLoad = window.setTimeout(() => void load(), 0)
       timer.current = setInterval(load, POLL_INTERVAL_MS)
       return () => {
+        window.clearTimeout(initialLoad)
         if (timer.current) clearInterval(timer.current)
       }
     }
@@ -72,11 +70,11 @@ export function RouteMonitor() {
 
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>{t('Route Monitor')}</SectionPageLayout.Title>
+      <SectionPageLayout.Title>{t('Routing Records')}</SectionPageLayout.Title>
       <SectionPageLayout.Actions>
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-2 text-base'>
           <Switch checked={live} onCheckedChange={setLive} />
-          <span className='text-muted-foreground text-sm'>{t('Live')}</span>
+          <span className='text-muted-foreground'>{t('Live')}</span>
         </div>
         <Button variant='outline' size='pill' onClick={load} disabled={loading}>
           <RefreshCw className='size-4' />
@@ -84,22 +82,22 @@ export function RouteMonitor() {
         </Button>
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
-        <p className='text-muted-foreground mb-3 text-sm'>
+        <p className='text-muted-foreground mb-4 text-base leading-7'>
           {t(
             'Live view of auto-routing decisions: the alias requested, the difficulty score from tierflow-infer, the matched tier, and the model it routed to. Most recent first (last 500 kept in memory).'
           )}
         </p>
-        <Frame>
-          <Table>
+        <Frame className='bg-slate-100/80'>
+          <Table className='text-base'>
             <TableHeader>
               <TableRow>
-                <TableHead>{t('Time')}</TableHead>
-                <TableHead>{t('Request scheme')}</TableHead>
-                <TableHead>{t('Score')}</TableHead>
-                <TableHead>{t('Tier')}</TableHead>
-                <TableHead>{t('Matched model')}</TableHead>
-                <TableHead>{t('User / Token')}</TableHead>
-                <TableHead>{t('Route latency')}</TableHead>
+                <TableHead className='h-12 px-4 text-sm'>{t('Time')}</TableHead>
+                <TableHead className='h-12 px-4 text-sm'>{t('Request scheme')}</TableHead>
+                <TableHead className='h-12 px-4 text-sm'>{t('Score')}</TableHead>
+                <TableHead className='h-12 px-4 text-sm'>{t('Tier')}</TableHead>
+                <TableHead className='h-12 px-4 text-sm'>{t('Matched model')}</TableHead>
+                <TableHead className='h-12 px-4 text-sm'>{t('User / Token')}</TableHead>
+                <TableHead className='h-12 px-4 text-sm'>{t('Route latency')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -107,7 +105,7 @@ export function RouteMonitor() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className='text-muted-foreground py-10 text-center'
+                    className='text-muted-foreground py-16 text-center text-base'
                   >
                     {loading ? t('Loading...') : t('No routing records yet')}
                   </TableCell>
@@ -115,28 +113,28 @@ export function RouteMonitor() {
               ) : (
                 rows.map((r, i) => (
                   <TableRow key={`${r.request_id}-${i}`}>
-                    <TableCell className='font-mono text-xs whitespace-nowrap'>
+                    <TableCell className='px-4 py-4 font-mono text-sm whitespace-nowrap'>
                       {fmtTime(r.time)}
                     </TableCell>
-                    <TableCell className='font-mono text-xs'>{r.alias}</TableCell>
-                    <TableCell>
+                    <TableCell className='px-4 py-4 font-mono text-sm'>{r.alias}</TableCell>
+                    <TableCell className='px-4 py-4'>
                       {r.scored ? (
                         <span className='font-medium'>{r.score.toFixed(2)}</span>
                       ) : (
                         <Badge variant='secondary'>{t('fallback')}</Badge>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className='px-4 py-4'>
                       <Badge variant='default'>
                         {TIER_LABEL[r.tier] || `tier${r.tier}`}
                       </Badge>
                     </TableCell>
-                    <TableCell className='font-medium'>{r.model}</TableCell>
-                    <TableCell className='text-muted-foreground text-xs'>
+                    <TableCell className='px-4 py-4 font-medium'>{r.model}</TableCell>
+                    <TableCell className='text-muted-foreground px-4 py-4 text-sm'>
                       {r.user_id ? `#${r.user_id}` : ''}
                       {r.token_name ? ` / ${r.token_name}` : ''}
                     </TableCell>
-                    <TableCell className='font-mono text-xs whitespace-nowrap'>
+                    <TableCell className='px-4 py-4 font-mono text-sm whitespace-nowrap'>
                       {r.route_ms}ms
                     </TableCell>
                   </TableRow>

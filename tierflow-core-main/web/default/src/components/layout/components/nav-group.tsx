@@ -25,7 +25,7 @@ export function NavGroup({ title, items }: NavGroupProps) {
   return (
     <div className='flex flex-col gap-0.5'>
       {title && (
-        <span className='mb-1.5 flex min-w-0 items-center px-4 text-[14px] font-semibold text-[#181E25]'>
+        <span className='mb-2 flex min-w-0 items-center px-4 text-[15px] font-semibold text-[#181E25]'>
           <span className='truncate'>{title}</span>
         </span>
       )}
@@ -60,7 +60,7 @@ function NavBadge({ children }: { children: ReactNode }) {
 }
 
 const ROW_BASE =
-  'group flex h-[40px] items-center justify-between rounded-[12px] px-3 transition-all duration-200 select-none'
+  'group flex h-[46px] items-center justify-between rounded-[13px] px-3 transition-all duration-200 select-none'
 
 /** 叶子链接项 */
 function NavLeaf({
@@ -89,16 +89,16 @@ function NavLeaf({
           : 'text-muted-foreground hover:text-foreground/90 hover:bg-black/5'
       )}
     >
-      <span className='flex min-w-0 items-center gap-2.5'>
+      <span className='flex min-w-0 items-center gap-3'>
         {Icon && (
           <Icon
             className={cn(
-              'size-4 shrink-0',
+              'size-[18px] shrink-0',
               isActive ? 'text-foreground' : 'text-muted-foreground/70'
             )}
           />
         )}
-        <span className='truncate text-[14px] leading-[19px] tracking-wide'>
+        <span className='truncate text-[15px] leading-[21px] font-medium tracking-[0.01em]'>
           {item.title}
         </span>
       </span>
@@ -141,9 +141,9 @@ function NavCollapsibleItem({
           'text-muted-foreground hover:text-foreground/90 hover:bg-black/5'
         )}
       >
-        <span className='flex min-w-0 items-center gap-2.5'>
-          {Icon && <Icon className='text-muted-foreground/70 size-4 shrink-0' />}
-          <span className='truncate text-[14px] leading-[19px] tracking-wide'>
+        <span className='flex min-w-0 items-center gap-3'>
+          {Icon && <Icon className='text-muted-foreground/70 size-[18px] shrink-0' />}
+          <span className='truncate text-[15px] leading-[21px] font-medium tracking-[0.01em]'>
             {item.title}
           </span>
         </span>

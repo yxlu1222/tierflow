@@ -9,6 +9,11 @@ ARG TARGETARCH
 ENV GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64}
 ENV GOEXPERIMENT=greenteagc
 
+# Keep local and appliance builds reliable on networks where proxy.golang.org
+# is unavailable. Override with --build-arg GOPROXY=... when needed.
+ARG GOPROXY=https://goproxy.cn,direct
+ENV GOPROXY=${GOPROXY}
+
 WORKDIR /build
 
 ADD go.mod go.sum ./

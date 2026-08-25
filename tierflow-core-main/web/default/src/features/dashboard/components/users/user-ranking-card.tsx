@@ -2,12 +2,12 @@
 Copyright (C) 2023-2026 TierFlow
 */
 import { useTranslation } from 'react-i18next'
-import { formatQuota } from '@/lib/format'
+import { formatNumber } from '@/lib/format'
 import { ConsoleCard } from '../overview/console-card'
 
 export interface RankedUser {
   username: string
-  quota: number
+  tokens: number
 }
 
 interface UserRankingCardProps {
@@ -28,18 +28,18 @@ const BAR_COLORS = [
 ] as const
 
 /**
- * 用户消费排行 — a custom Console-style ranked list (rank · username · share
+ * 用户 Token 用量排行 — a custom Console-style ranked list (rank · username · share
  * bar · mono value) rather than a VChart, matching the redesign's hairline,
  * tabular-number aesthetic and sidestepping chart-label overflow.
  */
 export function UserRankingCard(props: UserRankingCardProps) {
   const { t } = useTranslation()
-  const maxQuota = props.users.reduce((max, u) => Math.max(max, u.quota), 0)
+  const maxTokens = props.users.reduce((max, u) => Math.max(max, u.tokens), 0)
 
   return (
     <ConsoleCard
-      title={t('User Consumption Ranking')}
-      caption={`${t('Total:')} ${formatQuota(props.total)}`}
+      title={t('User Token Ranking')}
+      caption={`${t('Total Tokens')}: ${formatNumber(props.total)}`}
       loading={props.loading}
       empty={props.isEmpty}
       emptyMessage={t('No data available')}
@@ -47,7 +47,7 @@ export function UserRankingCard(props: UserRankingCardProps) {
     >
       <div className='flex flex-col gap-[11px]'>
         {props.users.map((user, index) => {
-          const width = maxQuota > 0 ? (user.quota / maxQuota) * 100 : 0
+          const width = maxTokens > 0 ? (user.tokens / maxTokens) * 100 : 0
           return (
             <div key={user.username} className='flex items-center gap-3'>
               <span className='text-muted-foreground w-4 shrink-0 text-right font-mono text-[11px] tabular-nums'>
@@ -59,7 +59,7 @@ export function UserRankingCard(props: UserRankingCardProps) {
                     {user.username}
                   </span>
                   <span className='text-foreground shrink-0 font-mono text-[12.5px] font-semibold tabular-nums'>
-                    {formatQuota(user.quota)}
+                    {formatNumber(user.tokens)}
                   </span>
                 </div>
                 <div className='bg-muted/60 h-1.5 overflow-hidden rounded-[4px]'>

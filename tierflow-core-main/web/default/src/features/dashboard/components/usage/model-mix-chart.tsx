@@ -5,7 +5,7 @@ import { useMemo } from 'react'
 import { VChart } from '@visactor/react-vchart'
 import { useTranslation } from 'react-i18next'
 import { FIXED_THEME_PRESET, FIXED_THEME_RADIUS } from '@/lib/fixed-theme'
-import { formatNumber, formatQuota } from '@/lib/format'
+import { formatNumber } from '@/lib/format'
 import { useThemeRadiusPx } from '@/lib/theme-radius'
 import { VCHART_OPTION } from '@/lib/vchart'
 import { getThemeChartColors } from '@/features/dashboard/lib/charts'
@@ -37,10 +37,9 @@ interface ModelMixChartProps {
 /**
  * 「调用模型占比」环图(数据分析页)。
  *
- * 与用量信息页的「模型调用分布」共用 `aggregateByHitModelGroup`:分片是实际调用到的
- * 模型(内部取模型组名 = 规范模型名),未经模型组路由的流量整行丢弃 —— 不再走
- * `model_group || strategy` 的通用回落链,那会把请求方案名混排进同一个图例(详见该
- * 函数注释)。所有模型具名展示,不做 Top-N 折叠、不产生「其他」。
+ * 与用量信息页的「模型调用分布」共用 `aggregateByHitModelGroup`:优先按实际命中的
+ * 模型组聚合；一体机采用固定本地路由、模型组为空时，回退到请求中的具体模型名。
+ * 所有模型具名展示,不做 Top-N 折叠、不产生「其他」。
  */
 export function ModelMixChart(props: ModelMixChartProps) {
   const { t } = useTranslation()
@@ -70,7 +69,6 @@ export function ModelMixChart(props: ModelMixChartProps) {
             values: slices.map((s) => ({
               model: s.name,
               count: s.count,
-              quota: s.quota,
             })),
           },
         ],
@@ -93,8 +91,7 @@ export function ModelMixChart(props: ModelMixChartProps) {
         label: { visible: false },
         legends: { visible: true, orient: 'bottom' },
         color,
-        // 浮层三行(占比 / 次数 / 消耗),与用量信息页的同款环图逐字一致;标题已是
-        // 模型名,内容行不再重复它。
+        // 标题显示模型名，浮层只保留用量口径的占比和次数。
         tooltip: {
           mark: {
             title: {
@@ -115,16 +112,11 @@ export function ModelMixChart(props: ModelMixChartProps) {
                 value: (datum: Record<string, unknown>) =>
                   formatNumber(Number(datum?.count) || 0),
               },
-              {
-                key: () => t('Spend'),
-                value: (datum: Record<string, unknown>) =>
-                  formatQuota(Number(datum?.quota) || 0),
-              },
             ],
           },
         },
         background: { fill: 'transparent' },
-        animation: true,
+        animation: false,
       },
     }
   }, [props.data, props.loading, chartRadius, t])
@@ -138,7 +130,7 @@ export function ModelMixChart(props: ModelMixChartProps) {
       emptyMessage={t('No data available')}
       contentHeight='300px'
     >
-      <div className='h-[300px]'>
+      <div className='h-[300px] min-w-0 overflow-hidden'>
         {spec && (
           <VChart
             key={`model-mix-${props.data.length}`}

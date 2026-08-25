@@ -1,0 +1,58 @@
+[Unit]
+Description=TierFlow LiquidAI LFM2.5-2.6B Q4_K_M inference service (llama.cpp)
+Wants=network-online.target
+After=network-online.target
+Conflicts=tierflow-model-qwen38.service tierflow-model-nanbeige42.service tierflow-model-deepseek-v4-flash.service tierflow-model-nemotron35-lightning.service
+
+[Service]
+Type=simple
+User=tierflow-inference
+Group=tierflow-inference
+SupplementaryGroups=tierflow video render
+WorkingDirectory=/var/lib/tierflow/models/lfm2.5-2.6b-gguf
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=GGML_CUDA_ENABLE_UNIFIED_MEMORY=1
+ExecStart=/opt/tierflow/inference/bin/llama-server-nanbeige42 \
+  --model /var/lib/tierflow/models/lfm2.5-2.6b-gguf/LFM2.5-2.6B-Q4_K_M.gguf \
+  --alias LFM2.5-2.6B \
+  --host 127.0.0.1 \
+  --port 8105 \
+  --ctx-size 884736 \
+  --parallel 6 \
+  --override-kv lfm2.context_length=int:147456 \
+  --rope-scaling linear \
+  --rope-scale 1.152 \
+  --gpu-layers 99 \
+  --flash-attn on \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --temp 0.1 \
+  --top-k 50 \
+  --repeat-penalty 1.1 \
+  --cont-batching \
+  --metrics \
+  --no-webui
+Restart=always
+RestartSec=5
+TimeoutStartSec=900
+TimeoutStopSec=90
+KillSignal=SIGTERM
+LimitNOFILE=1048576
+UMask=0027
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectControlGroups=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadOnlyPaths=/var/lib/tierflow/models/lfm2.5-2.6b-gguf
+ReadWritePaths=/var/log/tierflow-models /var/lib/tierflow-inference
+
+[Install]
+WantedBy=multi-user.target

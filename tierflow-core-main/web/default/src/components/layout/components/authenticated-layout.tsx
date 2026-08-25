@@ -7,7 +7,6 @@ import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { AnimatedOutlet } from '@/components/page-transition'
 import { SkipToMain } from '@/components/skip-to-main'
-import { FeedbackFab } from '@/features/tickets/components/feedback-fab'
 import { AppHeader } from './app-header'
 import { AppSidebar } from './app-sidebar'
 
@@ -36,14 +35,13 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
               'h-[calc(100svh-var(--app-header-height,0px))]',
               'min-h-0 overflow-hidden',
               // 内容区(sidebar 右侧)统一浅灰底,配合卡片描边、无阴影
-              'bg-[#f7f9fa]',
+              'bg-[#f6f7fb]',
               'peer-data-[variant=inset]:h-[calc(100svh-var(--app-header-height,0px)-(var(--spacing)*4))]'
             )}
           >
             {props.children ?? <AnimatedOutlet />}
           </SidebarInset>
         </div>
-        <FeedbackFab />
       </SidebarProvider>
     </SearchProvider>
   )

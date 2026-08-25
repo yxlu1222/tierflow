@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import { useAuthStore } from '@/stores/auth-store'
+import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,6 +35,7 @@ import {
   BACKUP_CODE_LENGTH,
 } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
+import { saveUserId } from '@/features/auth/lib/storage'
 import {
   isValidOTP,
   isValidBackupCode,
@@ -49,10 +50,8 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [useBackupCode, setUseBackupCode] = useState(false)
 
-  const pending2FAFlowToken = useAuthStore(
-    (state) => state.auth.pending2FAFlowToken
-  )
-  const { handleLoginSuccess, redirectToLogin } = useAuthRedirect()
+  const { auth } = useAuthStore()
+  const { redirectToLogin } = useAuthRedirect()
 
   const form = useForm<z.infer<typeof otpFormSchema>>({
     resolver: zodResolver(getOtpFormSchema(t)),
@@ -79,28 +78,29 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
     try {
       // Remove all hyphens from backup code before sending to backend
       const code = useBackupCode ? cleanBackupCode(data.otp) : data.otp
-      if (!pending2FAFlowToken) {
-        toast.error(t('Login flow expired. Please sign in again.'))
-        redirectToLogin()
-        return
-      }
-      const res = await login2fa({
-        code,
-        flow_token: pending2FAFlowToken,
-      })
+      const res = await login2fa({ code })
 
       if (!res.success) {
         toast.error(res.message || t('Invalid code'))
         return
       }
 
+      // Handle user data from 2FA login response
       const userData = res.data
       if (!userData) {
         throw new Error('No user data received from login')
       }
 
-      await handleLoginSuccess(userData)
+      // Update auth store
+      auth.setUser(userData as AuthUser)
+
+      // Store the public uid; it is echoed back on every request as TF-User
+      if (userData.uid) {
+        saveUserId(userData.uid)
+      }
+
       toast.success(t('Signed in'))
+      redirectToLogin() // This will redirect to dashboard via the redirect logic
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('2FA verification error:', error)

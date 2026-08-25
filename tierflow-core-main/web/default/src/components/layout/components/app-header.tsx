@@ -4,11 +4,9 @@ Copyright (C) 2023-2026 TierFlow
 import { Link } from '@tanstack/react-router'
 import { Cpu } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useNotifications } from '@/hooks/use-notifications'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LanguageSwitcher } from '@/components/language-switcher'
-import { NotificationBell } from '@/components/notification-bell'
 import { HeaderLogo } from './header-logo'
 import { HeaderUser } from './header-user'
 
@@ -21,7 +19,6 @@ import { HeaderUser } from './header-user'
  */
 export function AppHeader() {
   const { t } = useTranslation()
-  const notifications = useNotifications()
   const {
     systemName,
     logo: systemLogo,
@@ -34,7 +31,7 @@ export function AppHeader() {
       <nav className='flex h-full items-center px-4 md:px-6'>
         {/* Left: 品牌 */}
         <Link to='/usage' className='group flex shrink-0 items-center gap-2.5'>
-          <div className='flex size-8 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
+          <div className='flex size-9 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
             {loading ? (
               <Skeleton className='size-full rounded-lg' />
             ) : (
@@ -46,11 +43,11 @@ export function AppHeader() {
               />
             )}
           </div>
-          <span className='text-lg font-semibold tracking-tight'>
+          <span className='text-xl font-semibold tracking-tight'>
             {loading ? <Skeleton className='h-4 w-16' /> : systemName}
           </span>
-          <span className='hidden items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50/80 px-2.5 py-1 text-[11px] font-medium text-blue-700 md:inline-flex'>
-            <Cpu className='size-3.5' />
+          <span className='hidden items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50/80 px-3 py-1.5 text-xs font-medium text-blue-700 md:inline-flex'>
+            <Cpu className='size-4' />
             {t('Inference Appliance')}
           </span>
         </Link>
@@ -61,10 +58,6 @@ export function AppHeader() {
         {/* Right: 语言 / 通知 / 账户 */}
         <div className='flex items-center gap-1 sm:gap-2'>
           <LanguageSwitcher />
-          <NotificationBell
-            to='/notifications/system'
-            unreadCount={notifications.unreadCount}
-          />
           <HeaderUser />
         </div>
       </nav>

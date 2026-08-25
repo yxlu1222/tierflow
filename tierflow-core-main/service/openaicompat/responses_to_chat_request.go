@@ -1,6 +1,7 @@
 package openaicompat
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -37,7 +38,7 @@ func ResponsesRequestToChatCompletionsRequest(req *dto.OpenAIResponsesRequest) (
 		return nil, err
 	}
 	messages = append(messages, inputMsgs...)
-	mapDeveloperRoleToSystem(messages)
+	messages = NormalizeChatSystemMessages(messages)
 
 	out := &dto.GeneralOpenAIRequest{
 		Model:       req.Model,
@@ -74,16 +75,27 @@ func ResponsesRequestToChatCompletionsRequest(req *dto.OpenAIResponsesRequest) (
 	return out, nil
 }
 
-// mapDeveloperRoleToSystem 把 Responses 的 `developer` 角色就地改写为 `system`。
-// chat/completions 上游（DeepSeek 等）只认 system/user/assistant/tool，会对 `developer` 报
-// 400 "unknown variant `developer`"。就地改写而非合并/上提，保留消息原有顺序——Codex 会在对话
-// 中途注入 developer 指令，位置变了语义就变了。system 消息允许多条/连续，无需合并。
-func mapDeveloperRoleToSystem(messages []dto.Message) {
-	for i := range messages {
-		if messages[i].Role == "developer" {
-			messages[i].Role = "system"
+// NormalizeChatSystemMessages 把 instructions/system/developer 指令合并为对话最前面的一条
+// system 消息。部分本地模型模板要求 system 只能出现一次且必须位于首条。
+func NormalizeChatSystemMessages(messages []dto.Message) []dto.Message {
+	systemParts := make([]string, 0)
+	rest := make([]dto.Message, 0, len(messages))
+	for _, message := range messages {
+		role := strings.ToLower(strings.TrimSpace(message.Role))
+		if role == "system" || role == "developer" {
+			if content := strings.TrimSpace(message.StringContent()); content != "" {
+				systemParts = append(systemParts, content)
+			}
+			continue
 		}
+		rest = append(rest, message)
 	}
+	if len(systemParts) == 0 {
+		return rest
+	}
+	system := dto.Message{Role: "system"}
+	system.SetStringContent(strings.Join(systemParts, "\n\n"))
+	return append([]dto.Message{system}, rest...)
 }
 
 // responsesInstructionsToString 解析 instructions（通常是 JSON 字符串）为纯文本。
@@ -122,11 +134,15 @@ func responsesInputToMessages(raw json.RawMessage) ([]dto.Message, error) {
 
 		switch {
 		case itemType == "function_call":
+			name := item.Get("name").String()
+			if namespace := item.Get("namespace").String(); namespace != "" {
+				name = encodeResponsesNamespaceToolName(namespace, name)
+			}
 			tc := dto.ToolCallRequest{
 				ID:   item.Get("call_id").String(),
 				Type: "function",
 				Function: dto.FunctionRequest{
-					Name:      item.Get("name").String(),
+					Name:      name,
 					Arguments: responsesArgumentsToString(item.Get("arguments")),
 				},
 			}
@@ -234,7 +250,41 @@ func setChatContentFromResponsesContent(m *dto.Message, content gjson.Result, ro
 	m.Content = chatParts
 }
 
-// responsesToolsToChatTools 把 Responses 工具数组(扁平 name/parameters)转成 chat 工具(function 嵌套)。
+const responsesNamespaceToolPrefix = "tfns__"
+
+// encodeResponsesNamespaceToolName 将 Responses namespace 工具转换为 chat/completions 可接受的
+// 单层函数名。Raw URL-safe base64 不包含分隔符 "__"，因此可以无损还原。
+func encodeResponsesNamespaceToolName(namespace, name string) string {
+	if namespace == "" {
+		return name
+	}
+	return responsesNamespaceToolPrefix +
+		base64.RawURLEncoding.EncodeToString([]byte(namespace)) + "__" +
+		base64.RawURLEncoding.EncodeToString([]byte(name))
+}
+
+// DecodeResponsesNamespaceToolName 还原经 encodeResponsesNamespaceToolName 编码的工具名。
+func DecodeResponsesNamespaceToolName(encoded string) (namespace, name string, ok bool) {
+	if !strings.HasPrefix(encoded, responsesNamespaceToolPrefix) {
+		return "", encoded, false
+	}
+	parts := strings.Split(strings.TrimPrefix(encoded, responsesNamespaceToolPrefix), "__")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", encoded, false
+	}
+	namespaceBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil || len(namespaceBytes) == 0 {
+		return "", encoded, false
+	}
+	nameBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil || len(nameBytes) == 0 {
+		return "", encoded, false
+	}
+	return string(namespaceBytes), string(nameBytes), true
+}
+
+// responsesToolsToChatTools 把 Responses 工具数组转成 chat 工具。namespace 中的 function
+// 会被扁平化并使用可逆名称编码；web_search/file_search 等本地模型无法执行的内置工具会跳过。
 func responsesToolsToChatTools(raw json.RawMessage) []dto.ToolCallRequest {
 	if len(raw) == 0 {
 		return nil
@@ -245,27 +295,59 @@ func responsesToolsToChatTools(raw json.RawMessage) []dto.ToolCallRequest {
 	}
 	tools := make([]dto.ToolCallRequest, 0)
 	for _, t := range res.Array() {
-		typ := t.Get("type").String()
-		if typ == "" {
-			typ = "function"
-		}
-		if typ != "function" {
-			// 内建工具(web_search 等)chat 不支持，跳过
-			continue
-		}
-		tool := dto.ToolCallRequest{
-			Type: "function",
-			Function: dto.FunctionRequest{
-				Name:        t.Get("name").String(),
-				Description: t.Get("description").String(),
-			},
-		}
-		if params := t.Get("parameters"); params.Exists() {
-			tool.Function.Parameters = jsonValue(params)
-		}
-		tools = append(tools, tool)
+		appendResponsesTool(&tools, t, "", "")
 	}
 	return tools
+}
+
+func appendResponsesTool(tools *[]dto.ToolCallRequest, tool gjson.Result, namespace, namespaceDescription string) {
+	typ := strings.ToLower(strings.TrimSpace(tool.Get("type").String()))
+	if typ == "" {
+		typ = "function"
+	}
+	switch typ {
+	case "function":
+		name := strings.TrimSpace(tool.Get("name").String())
+		if name == "" {
+			return
+		}
+		description := strings.TrimSpace(tool.Get("description").String())
+		if namespace != "" {
+			prefix := "Namespace: " + namespace + "."
+			if namespaceDescription != "" {
+				prefix += " " + namespaceDescription
+			}
+			if description != "" {
+				description = strings.TrimSpace(prefix + "\n" + description)
+			} else {
+				description = prefix
+			}
+			name = encodeResponsesNamespaceToolName(namespace, name)
+		}
+		converted := dto.ToolCallRequest{
+			Type: "function",
+			Function: dto.FunctionRequest{
+				Name:        name,
+				Description: description,
+			},
+		}
+		if params := tool.Get("parameters"); params.Exists() {
+			converted.Function.Parameters = jsonValue(params)
+		}
+		*tools = append(*tools, converted)
+	case "namespace":
+		ns := strings.TrimSpace(tool.Get("name").String())
+		if ns == "" || !tool.Get("tools").IsArray() {
+			return
+		}
+		description := strings.TrimSpace(tool.Get("description").String())
+		for _, nested := range tool.Get("tools").Array() {
+			appendResponsesTool(tools, nested, ns, description)
+		}
+	default:
+		// Responses 内置工具需要由服务端执行，chat/completions 本地模型没有对应执行器。
+		return
+	}
 }
 
 // responsesToolChoiceToChat 把 Responses 的 tool_choice 转成 chat 形态。
@@ -277,19 +359,32 @@ func responsesToolChoiceToChat(raw json.RawMessage) any {
 	if res.Type == gjson.String {
 		return res.String()
 	}
-	if res.IsObject() && res.Get("type").String() == "function" {
+	if !res.IsObject() {
+		return nil
+	}
+	typ := strings.ToLower(strings.TrimSpace(res.Get("type").String()))
+	if typ == "function" {
 		name := res.Get("name").String()
 		if name == "" {
 			name = res.Get("function.name").String()
 		}
 		if name != "" {
+			namespace := res.Get("namespace").String()
+			if namespace == "" {
+				namespace = res.Get("function.namespace").String()
+			}
+			if namespace != "" {
+				name = encodeResponsesNamespaceToolName(namespace, name)
+			}
 			return map[string]any{
 				"type":     "function",
 				"function": map[string]any{"name": name},
 			}
 		}
 	}
-	return jsonValue(res)
+	// namespace 与 Responses 内置工具无法直接表达为 chat tool_choice；保留自动选择，
+	// 避免将上游不认识的类型原样发送给本地模型服务。
+	return "auto"
 }
 
 // responsesTextToResponseFormat 把 Responses 的 text.format 还原成 chat 的 response_format。

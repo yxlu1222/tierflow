@@ -28,6 +28,24 @@ const DISABLED_COMMERCIAL_PATHS = [
   '/wallet',
 ] as const
 
+/**
+ * Legacy multi-tenant platform workspaces are intentionally not part of the
+ * appliance UI. Their backend data structures remain available internally so
+ * TierFlow can still route requests to local runtimes, but operators cannot
+ * open or select those implementation details from the dedicated console.
+ */
+const DISABLED_LEGACY_PLATFORM_PATHS = [
+  '/announcements',
+  '/channels',
+  '/notifications',
+  '/profile',
+  '/route-monitor',
+  '/routing-profiles',
+  '/tickets',
+] as const
+
+const DISABLED_APPLIANCE_WORKSPACES = ['/models', '/system-settings'] as const
+
 function matchesPathPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
 }
@@ -38,6 +56,16 @@ export function isCommercialPathDisabled(pathname: string): boolean {
     DISABLED_COMMERCIAL_PATHS.some((prefix) =>
       matchesPathPrefix(pathname, prefix)
     )
+  )
+}
+
+export function isAppliancePathDisabled(pathname: string): boolean {
+  return (
+    isCommercialPathDisabled(pathname) ||
+    (APPLIANCE_MODE &&
+      [...DISABLED_LEGACY_PLATFORM_PATHS, ...DISABLED_APPLIANCE_WORKSPACES].some(
+        (prefix) => matchesPathPrefix(pathname, prefix)
+      ))
   )
 }
 

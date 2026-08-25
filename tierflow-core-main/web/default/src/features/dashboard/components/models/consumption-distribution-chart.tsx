@@ -109,7 +109,9 @@ export function ConsumptionDistributionChart(
   const chart = (
     <div
       className={
-        props.embedded ? 'min-h-0 flex-1' : 'h-[300px] p-1.5 sm:h-96 sm:p-2'
+        props.embedded
+          ? 'min-h-0 min-w-0 flex-1 overflow-hidden'
+          : 'h-[300px] min-w-0 overflow-hidden p-1.5 sm:h-96 sm:p-2'
       }
     >
       {spec && (
@@ -119,6 +121,7 @@ export function ConsumptionDistributionChart(
             ...spec,
             theme: 'light',
             background: 'transparent',
+            animation: false,
           }}
           option={VCHART_OPTION}
         />

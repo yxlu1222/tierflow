@@ -1,8 +1,7 @@
 /*
 Copyright (C) 2023-2026 TierFlow
 */
-import { useNavigate } from '@tanstack/react-router'
-import { LogOut, User } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/stores/auth-store'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
@@ -20,7 +19,6 @@ import { SignOutDialog } from '@/components/sign-out-dialog'
 /** 一体机顶栏的紧凑账户入口，仅保留身份、个人资料与退出操作。 */
 export function HeaderUser() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const [signOutOpen, setSignOutOpen] = useDialogState()
   const user = useAuthStore((state) => state.auth.user)
   const { displayName, secondaryText, roleLabel } = useUserDisplay(user)
@@ -86,11 +84,6 @@ export function HeaderUser() {
           </div>
         </div>
 
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate({ to: '/profile' })}>
-          <User className='size-4' />
-          {t('Profile')}
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
 
         <DropdownMenuItem

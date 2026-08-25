@@ -2,7 +2,10 @@ name: tierflow-dev
 
 services:
   new-api:
-    image: calciumion/new-api@sha256:be4b1f3fb48687cab0e0ff921a1e4c69ae3738c0907ce05646ddc6da02cb35a5
+    build:
+      context: ../../tierflow-core-main
+      dockerfile: Dockerfile.dev
+    image: tierflow-dev:local
     restart: unless-stopped
     command: --log-dir /app/logs
     ports:
@@ -77,4 +80,3 @@ volumes:
 networks:
   internal:
     driver: bridge
-

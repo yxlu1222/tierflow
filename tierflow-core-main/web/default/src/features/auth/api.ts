@@ -2,7 +2,6 @@
 Copyright (C) 2023-2026 TierFlow
 */
 import { api } from '@/lib/api'
-import { useAuthStore } from '@/stores/auth-store'
 import type {
   LoginPayload,
   LoginResponse,
@@ -28,28 +27,20 @@ export async function login(payload: LoginPayload) {
     {
       username: payload.username,
       password: payload.password,
-    },
-    { skipAuthRefresh: true }
+    }
   )
   return res.data
 }
 
 // Two-factor authentication login
 export async function login2fa(payload: TwoFAPayload) {
-  const res = await api.post<Login2FAResponse>('/api/user/login/2fa', payload, {
-    skipAuthRefresh: true,
-  })
+  const res = await api.post<Login2FAResponse>('/api/user/login/2fa', payload)
   return res.data
 }
 
 // User logout
 export async function logout(): Promise<ApiResponse> {
-  const sid = useAuthStore.getState().auth.session?.sid
-  const res = await api.post('/api/user/auth/logout', undefined, {
-    headers: sid ? { 'X-Auth-Session': sid } : undefined,
-    skipAuthRefresh: true,
-    skipErrorHandler: true,
-  })
+  const res = await api.get('/api/user/logout')
   return res.data
 }
 

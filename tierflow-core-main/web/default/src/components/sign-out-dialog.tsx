@@ -1,15 +1,11 @@
 /*
 Copyright (C) 2023-2026 TierFlow
 */
-import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-
+import { useAuthStore } from '@/stores/auth-store'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { logout } from '@/features/auth/api'
-import { clearAuthenticatedClientState } from '@/lib/auth-session'
 
 interface SignOutDialogProps {
   open: boolean
@@ -18,29 +14,26 @@ interface SignOutDialogProps {
 
 export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [isSigningOut, setIsSigningOut] = useState(false)
+  const { auth } = useAuthStore()
 
   const handleSignOut = async () => {
-    setIsSigningOut(true)
     try {
-      await queryClient.cancelQueries()
-      const response = await logout()
-      if (!response.success) {
-        toast.error(response.message || t('Failed to sign out session'))
-        return
+      await logout()
+    } catch {
+      /* empty */
+    }
+    auth.reset()
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('uid')
       }
-
-      clearAuthenticatedClientState(queryClient)
-      toast.success(t('Signed out'))
-      void navigate({ to: '/sign-in', replace: true })
-    } catch (error: unknown) {
-      toast.error(
-        error instanceof Error ? error.message : t('Failed to sign out session')
-      )
-    } finally {
-      setIsSigningOut(false)
+    } catch {
+      /* empty */
+    }
+    toast.success(t('Signed out'))
+    // Refresh the page to clear all state and update UI
+    if (typeof window !== 'undefined') {
+      window.location.reload()
     }
   }
 
@@ -54,7 +47,8 @@ export function SignOutDialog({ open, onOpenChange }: SignOutDialogProps) {
       )}
       confirmText={t('Sign out')}
       handleConfirm={handleSignOut}
-      isLoading={isSigningOut}
+      // 登出会清空本地状态并刷新页面,按破坏性操作处理;宽度不再单独收窄,
+      // 跟其它确认弹窗保持同一尺寸
       destructive
     />
   )

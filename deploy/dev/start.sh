@@ -19,6 +19,5 @@ if [[ ! -f .env ]]; then
     > .env
 fi
 
-docker compose --env-file .env -f compose.yml up -d
+docker compose --env-file .env -f compose.yml up -d --build
 docker compose --env-file .env -f compose.yml ps
-

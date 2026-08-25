@@ -45,7 +45,6 @@ import {
   getRegisterFormSchema,
 } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
-import { isAuthBundle } from '@/lib/api'
 import { useEmailVerification } from '@/features/auth/hooks/use-email-verification'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import {
@@ -210,8 +209,8 @@ export function SignUpForm({
     setIsWeChatSubmitting(true)
     try {
       const res = await wechatLoginByCode(wechatCode)
-      if (res?.success && isAuthBundle(res.data)) {
-        await handleLoginSuccess(res.data)
+      if (res?.success) {
+        await handleLoginSuccess(res.data as { uid?: string } | null)
         toast.success(t('Signed in via WeChat'))
         handleWeChatDialogChange(false)
       } else {

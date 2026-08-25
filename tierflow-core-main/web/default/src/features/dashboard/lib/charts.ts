@@ -3,6 +3,7 @@ Copyright (C) 2023-2026 TierFlow
 */
 import { dataScheme as vchartDefaultDataScheme } from '@visactor/vchart/esm/theme/color-scheme/builtin/default'
 import { getCurrencyDisplay } from '@/lib/currency'
+import { formatCompactNumber, formatNumber } from '@/lib/format'
 import { formatChartTime, type TimeGranularity } from '@/lib/time'
 import { MAX_CHART_TREND_POINTS } from '@/features/dashboard/constants'
 import type {
@@ -133,26 +134,6 @@ export function buildContiguousTimePoints(
     if (!seen.has(key)) keys.push(key)
   }
   return keys.sort()
-}
-
-/**
- * Fraction digits an axis needs so its ticks stay distinguishable.
- *
- * A fixed digit count collapses every tick to the same label once the series
- * peak is small — a range peaking at ¥0.03 rendered at 2 digits yields
- * ¥0.01 / ¥0.01 / ¥0.01 / ¥0.00, an axis that carries no information.
- * Drive the precision off the peak instead.
- */
-function quotaAxisDigits(peakRawQuota: number): number {
-  const { config, meta } = getCurrencyDisplay()
-  if (meta.kind === 'tokens') return 0
-  const rate = 'exchangeRate' in meta ? meta.exchangeRate : 1
-  const peak = Math.abs((peakRawQuota / config.quotaPerUnit) * rate)
-  if (!Number.isFinite(peak) || peak === 0) return 2
-  if (peak >= 100) return 0
-  if (peak >= 1) return 2
-  if (peak >= 0.01) return 4
-  return 6
 }
 
 function renderQuotaCompat(rawQuota: number, digits = 4): string {
@@ -828,8 +809,6 @@ export function processUserChartData(
   themeKey?: string
 ): ProcessedUserChartData {
   const tt: TFunction = t ?? ((x) => x)
-  const { config } = getCurrencyDisplay()
-  const quotaPerUnit = config.quotaPerUnit
   const themeUserColors = getThemeChartColors(themeKey)
   const userColorRange =
     themeUserColors.length > 0
@@ -839,19 +818,19 @@ export function processUserChartData(
         )
       : USER_COLOR_FALLBACKS
 
-  const formatVal = (raw: number) => renderQuotaCompat(raw, 2)
+  const formatVal = (tokens: number) => formatNumber(tokens)
 
   const emptyResult: ProcessedUserChartData = {
     spec_user_rank: {
       type: 'bar',
       data: [{ id: 'userRankData', values: [] }],
-      xField: 'rawQuota',
+      xField: 'Tokens',
       yField: 'User',
       seriesField: 'User',
       direction: 'horizontal',
       title: {
         visible: true,
-        text: tt('User Consumption Ranking'),
+        text: tt('User Token Ranking'),
         subtext: tt('No data available'),
       },
       legends: { visible: false },
@@ -862,11 +841,11 @@ export function processUserChartData(
       type: 'area',
       data: [{ id: 'userTrendData', values: [] }],
       xField: 'Time',
-      yField: 'rawQuota',
+      yField: 'Tokens',
       seriesField: 'User',
       title: {
         visible: true,
-        text: tt('User Consumption Trend'),
+        text: tt('User Token Trend'),
         subtext: tt('No data available'),
       },
       legends: { visible: true, selectMode: 'single' },
@@ -878,31 +857,28 @@ export function processUserChartData(
 
   if (!data || data.length === 0) return emptyResult
 
-  const userQuotaTotal = new Map<string, number>()
+  const userTokenTotal = new Map<string, number>()
   data.forEach((item) => {
     const username = item.username || 'unknown'
-    const prev = userQuotaTotal.get(username) || 0
-    userQuotaTotal.set(username, prev + (Number(item.quota) || 0))
+    const prev = userTokenTotal.get(username) || 0
+    userTokenTotal.set(username, prev + (Number(item.token_used) || 0))
   })
 
-  // A quota_data row means the user made a request, not that it cost anything —
-  // free-model traffic lands here with quota 0. Ranking by quota without a floor
-  // lets those users fill the top-N whenever fewer than `limit` users actually
-  // spent, so the legend and palette go to flat-zero series. `Active users`
-  // (user-charts.tsx) already defines "with consumption" as quota > 0; hold the
-  // charts beside it to the same definition.
-  const sorted = Array.from(userQuotaTotal.entries())
-    .filter(([, quota]) => quota > 0)
+  // Ignore zero-token probes so the ranking and legend only contain users with
+  // actual inference token usage in the selected range.
+  const sorted = Array.from(userTokenTotal.entries())
+    .filter(([, tokens]) => tokens > 0)
     .sort((a, b) => b[1] - a[1])
   if (sorted.length === 0) return emptyResult
   const topUsers = sorted.slice(0, limit).map(([u]) => u)
   const topUserSet = new Set(topUsers)
-  const totalQuota = sorted.slice(0, limit).reduce((s, [, q]) => s + q, 0)
+  const totalTokens = sorted
+    .slice(0, limit)
+    .reduce((sum, [, tokens]) => sum + tokens, 0)
 
-  const rankValues = sorted.slice(0, limit).map(([username, quota]) => ({
+  const rankValues = sorted.slice(0, limit).map(([username, tokens]) => ({
     User: username,
-    rawQuota: quota,
-    Usage: Number((quota / quotaPerUnit).toFixed(4)),
+    Tokens: tokens,
   }))
 
   const userColorMap = topUsers.reduce<Record<string, string>>(
@@ -924,7 +900,7 @@ export function processUserChartData(
     if (!topUserSet.has(user)) return
     if (!timeUserMap.has(timeKey)) timeUserMap.set(timeKey, new Map())
     const map = timeUserMap.get(timeKey)!
-    map.set(user, (map.get(user) || 0) + (Number(item.quota) || 0))
+    map.set(user, (map.get(user) || 0) + (Number(item.token_used) || 0))
   })
 
   // Buckets with no traffic never reach the client, so charting only the keys
@@ -939,48 +915,34 @@ export function processUserChartData(
   const trendValues: Array<{
     Time: string
     User: string
-    rawQuota: number
-    Usage: number
+    Tokens: number
   }> = []
 
   sortedTimePoints.forEach((time) => {
     topUsers.forEach((user) => {
-      const q = timeUserMap.get(time)?.get(user) || 0
+      const tokens = timeUserMap.get(time)?.get(user) || 0
       trendValues.push({
         Time: time,
         User: user,
-        rawQuota: q,
-        Usage: Number((q / quotaPerUnit).toFixed(4)),
+        Tokens: tokens,
       })
     })
   })
 
-  // Axis ticks scale their precision to the series peak; `formatVal` stays at a
-  // fixed 2 digits for totals and tooltips, where the figure is read on its own
-  // rather than against its neighbours.
-  const trendAxisDigits = quotaAxisDigits(
-    trendValues.reduce((peak, v) => Math.max(peak, v.rawQuota), 0)
-  )
-  // Widening the fraction for a small peak leaves ticks like ¥0.005000; the
-  // padding carries no information once the labels are already distinct.
-  const formatTrendAxis = (value: number) =>
-    renderQuotaCompat(value, trendAxisDigits).replace(
-      /(\.\d*?)0+$/,
-      (_, kept: string) => (kept === '.' ? '' : kept)
-    )
+  const formatTrendAxis = (value: number) => formatCompactNumber(value)
 
   return {
     spec_user_rank: {
       type: 'bar',
       data: [{ id: 'userRankData', values: rankValues }],
-      xField: 'rawQuota',
+      xField: 'Tokens',
       yField: 'User',
       seriesField: 'User',
       direction: 'horizontal',
       title: {
         visible: true,
-        text: tt('User Consumption Ranking'),
-        subtext: `${tt('Total:')} ${formatVal(totalQuota)}`,
+        text: tt('User Token Ranking'),
+        subtext: `${tt('Total Tokens')}: ${formatVal(totalTokens)}`,
       },
       legends: { visible: false },
       bar: {
@@ -1002,7 +964,7 @@ export function processUserChartData(
             {
               key: (datum: Record<string, unknown>) => datum?.User,
               value: (datum: Record<string, unknown>) =>
-                formatVal(Number(datum?.rawQuota) || 0),
+                formatVal(Number(datum?.Tokens) || 0),
             },
           ],
           updateContent: (
@@ -1013,9 +975,9 @@ export function processUserChartData(
             }>
           ) => {
             for (let i = 0; i < array.length; i++) {
-              const rawQuota = array[i].datum?.rawQuota
+              const tokens = array[i].datum?.Tokens
               const value =
-                rawQuota === undefined ? array[i].value : Number(rawQuota)
+                tokens === undefined ? array[i].value : Number(tokens)
               array[i].value = formatVal(Number(value) || 0)
             }
             return array
@@ -1030,13 +992,13 @@ export function processUserChartData(
       type: 'area',
       data: [{ id: 'userTrendData', values: trendValues }],
       xField: 'Time',
-      yField: 'rawQuota',
+      yField: 'Tokens',
       seriesField: 'User',
       stack: false,
       title: {
         visible: true,
-        text: tt('User Consumption Trend'),
-        subtext: `${tt('Total:')} ${formatVal(totalQuota)}`,
+        text: tt('User Token Trend'),
+        subtext: `${tt('Total Tokens')}: ${formatVal(totalTokens)}`,
       },
       legends: { visible: true, selectMode: 'single' },
       axes: [
@@ -1055,7 +1017,7 @@ export function processUserChartData(
             {
               key: (datum: Record<string, unknown>) => datum?.User,
               value: (datum: Record<string, unknown>) =>
-                formatVal(Number(datum?.rawQuota) || 0),
+                formatVal(Number(datum?.Tokens) || 0),
             },
           ],
         },
@@ -1064,7 +1026,7 @@ export function processUserChartData(
             {
               key: (datum: Record<string, unknown>) => datum?.User,
               value: (datum: Record<string, unknown>) =>
-                Number(datum?.rawQuota) || 0,
+                Number(datum?.Tokens) || 0,
             },
           ],
           updateContent: (

@@ -74,7 +74,7 @@ func ResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *
 	// 反向兜底：上游不原生支持 Responses API 时，把 /v1/responses 降级成 chat/completions 调上游，
 	// 再把 chat 响应转回 responses 形态返回，避免「上游没有 /v1/responses → 404 / not implemented」。
 	passThrough := model_setting.GetGlobalSettings().PassThroughRequestEnabled || info.ChannelSetting.PassThroughBodyEnabled
-	if info.RelayMode == relayconstant.RelayModeResponses && !passThrough && !responsesAPINativelySupported(info.ApiType) {
+	if info.RelayMode == relayconstant.RelayModeResponses && !passThrough && !responsesAPINativelySupported(info) {
 		usage, newAPIErr := responsesViaChatCompletions(c, info, adaptor, request)
 		if newAPIErr != nil {
 			return newAPIErr

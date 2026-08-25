@@ -17,7 +17,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import dayjs from '@/lib/dayjs'
-import { formatNumber, formatQuota } from '@/lib/format'
+import { formatNumber } from '@/lib/format'
 import type { TimeGranularity } from '@/lib/time'
 import { DateRangePicker } from '@/components/date-range-picker'
 import { getUserQuotaDates } from '@/features/dashboard/api'
@@ -25,8 +25,9 @@ import {
   buildQueryParams,
   calculateDashboardStats,
 } from '@/features/dashboard/lib'
+import { isVisibleApplianceUsageRow } from '@/features/dashboard/lib/hit-model-group'
 import { ConsoleKpiStrip, type ConsoleKpiCell } from '../console-kpi-strip'
-import { ConsumptionCard } from './consumption-card'
+import { UsageTrendCard } from './consumption-card'
 import { ModelMixChart } from './model-mix-chart'
 import { ModelUsageTable } from './model-usage-table'
 
@@ -69,25 +70,38 @@ export function SiteUsagePanel() {
     staleTime: 60_000,
   })
 
-  const rows = useMemo(() => (isLoading ? [] : (data ?? [])), [data, isLoading])
+  const rows = useMemo(
+    () =>
+      isLoading
+        ? []
+        : (data ?? []).filter((row) => isVisibleApplianceUsageRow(row)),
+    [data, isLoading]
+  )
   const isEmpty = !isLoading && rows.length === 0
   const totals = useMemo(() => calculateDashboardStats(rows), [rows])
+  const kpiSeries = useMemo(() => {
+    const buckets = new Map<number, { tokens: number; requests: number }>()
+    for (const row of rows) {
+      const timestamp = Number(row.created_at) || 0
+      const bucket = buckets.get(timestamp) ?? { tokens: 0, requests: 0 }
+      bucket.tokens += Number(row.token_used) || 0
+      bucket.requests += Number(row.count) || 0
+      buckets.set(timestamp, bucket)
+    }
+    const ordered = Array.from(buckets.entries()).sort(([a], [b]) => a - b)
+    return {
+      tokens: ordered.map(([, bucket]) => bucket.tokens),
+      requests: ordered.map(([, bucket]) => bucket.requests),
+    }
+  }, [rows])
 
   const kpiCells: ConsoleKpiCell[] = [
-    {
-      key: 'quota',
-      label: t('Total Consumption'),
-      value: formatQuota(totals.totalQuota),
-      sub: t('Site-wide'),
-      spark: [],
-      sparkColor: 'var(--ov-bad)',
-    },
     {
       key: 'tokens',
       label: t('Total Tokens'),
       value: formatNumber(totals.totalTokens),
       sub: t('Site-wide'),
-      spark: [],
+      spark: kpiSeries.tokens,
       sparkColor: 'var(--info)',
     },
     {
@@ -95,7 +109,7 @@ export function SiteUsagePanel() {
       label: t('Requests'),
       value: formatNumber(totals.totalCount),
       sub: t('Site-wide'),
-      spark: [],
+      spark: kpiSeries.requests,
       sparkColor: 'var(--ov-accent)',
     },
   ]
@@ -110,12 +124,13 @@ export function SiteUsagePanel() {
         />
       </div>
 
-      <ConsoleKpiStrip cells={kpiCells} loading={isLoading} columns={3} />
+      <ConsoleKpiStrip cells={kpiCells} loading={isLoading} columns={2} />
 
       <div className='grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]'>
-        <ConsumptionCard
+        <UsageTrendCard
           data={rows}
           loading={isLoading}
+          isEmpty={isEmpty}
           timeGranularity={granularity}
         />
         <ModelMixChart data={rows} loading={isLoading} isEmpty={isEmpty} />

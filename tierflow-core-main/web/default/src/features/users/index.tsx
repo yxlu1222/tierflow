@@ -16,12 +16,21 @@ function UsersContent() {
   return (
     <>
       <SectionPageLayout>
-        <SectionPageLayout.Title>{t('Users')}</SectionPageLayout.Title>
+        <SectionPageLayout.Title>
+          {t('User Management')}
+        </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           <UsersPrimaryButtons />
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          <UsersTable />
+          <div className='space-y-4'>
+            <p className='text-base leading-7 text-slate-500'>
+              {t(
+                'Manage appliance users, roles, token consumption, Skills, and API keys.'
+              )}
+            </p>
+            <UsersTable />
+          </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
 

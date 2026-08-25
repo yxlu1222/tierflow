@@ -26,3 +26,13 @@ func ResponsesRequestToChatCompletionsRequest(req *dto.OpenAIResponsesRequest) (
 func ChatCompletionsResponseToResponsesResponse(resp *dto.OpenAITextResponse, respID string, createdAt int) (*dto.OpenAIResponsesResponse, *dto.Usage, error) {
 	return openaicompat.ChatCompletionsResponseToResponsesResponse(resp, respID, createdAt)
 }
+
+// DecodeResponsesNamespaceToolName 供 relay 流式转换层还原 namespace 工具名。
+func DecodeResponsesNamespaceToolName(encoded string) (namespace, name string, ok bool) {
+	return openaicompat.DecodeResponsesNamespaceToolName(encoded)
+}
+
+// NormalizeChatSystemMessages 将 system/developer 指令合并为唯一、置顶的 system 消息。
+func NormalizeChatSystemMessages(messages []dto.Message) []dto.Message {
+	return openaicompat.NormalizeChatSystemMessages(messages)
+}

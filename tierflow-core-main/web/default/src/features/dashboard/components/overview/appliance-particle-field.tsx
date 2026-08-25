@@ -15,6 +15,7 @@ type Particle = {
 const PARTICLE_COLOR = '37, 99, 235'
 const PARTICLE_COUNT = 44
 const LINK_DISTANCE = 92
+const FRAME_INTERVAL_MS = 1000 / 30
 
 export function ApplianceParticleField() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -33,6 +34,7 @@ export function ApplianceParticleField() {
     let width = 0
     let height = 0
     let animationFrameId = 0
+    let lastFrameAt = 0
     let particles: Particle[] = []
 
     const createParticles = () => {
@@ -63,7 +65,12 @@ export function ApplianceParticleField() {
       createParticles()
     }
 
-    const draw = () => {
+    const draw = (frameAt = 0) => {
+      if (!reducedMotion && frameAt - lastFrameAt < FRAME_INTERVAL_MS) {
+        animationFrameId = requestAnimationFrame(draw)
+        return
+      }
+      lastFrameAt = frameAt
       context.clearRect(0, 0, width, height)
 
       for (let index = 0; index < particles.length; index += 1) {
@@ -103,7 +110,7 @@ export function ApplianceParticleField() {
     const resizeObserver = new ResizeObserver(resize)
     resizeObserver.observe(container)
     resize()
-    draw()
+    draw(performance.now())
 
     return () => {
       resizeObserver.disconnect()

@@ -1,7 +1,7 @@
 /*
 Copyright (C) 2023-2026 TierFlow
 */
-import type { AuthBundle } from '@/stores/auth-store'
+import type { User } from '@/features/users/types'
 
 // ============================================================================
 // API Payloads
@@ -15,7 +15,6 @@ export interface LoginPayload {
 
 export interface TwoFAPayload {
   code: string
-  flow_token: string
 }
 
 export interface RegisterPayload {
@@ -49,19 +48,17 @@ export interface BindEmailPayload {
 export interface LoginResponse {
   success: boolean
   message: string
-  data?:
-    | AuthBundle
-    | {
-        require_2fa?: boolean
-        flow_token?: string
-        expires_at?: number
-      }
+  data?: {
+    require_2fa?: boolean
+    /** 对外用户标识;内部自增 id 已不再下发 */
+    uid?: string
+  }
 }
 
 export interface Login2FAResponse {
   success: boolean
   message: string
-  data?: AuthBundle
+  data?: User
 }
 
 export interface ApiResponse {

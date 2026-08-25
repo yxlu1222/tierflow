@@ -91,6 +91,7 @@ var EmailLoginAuthServerList = []string{
 
 var DebugEnabled bool
 var MemoryCacheEnabled bool
+var ApplianceMode bool
 
 var LogConsumeEnabled = true
 

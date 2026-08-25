@@ -2,10 +2,11 @@
 Copyright (C) 2023-2026 TierFlow
 */
 import { create } from 'zustand'
+import { removeUserId } from '@/features/auth/lib/storage'
 
 export interface AuthUser {
-  id: number
-  uid?: string
+  /** 对外用户标识(12 位纯数字)。内部自增 id 不再下发到前端。 */
+  uid: string
   username: string
   display_name?: string
   email?: string
@@ -21,100 +22,67 @@ export interface AuthUser {
   aff_history_quota?: number
   inviter_id?: number
   github_id?: string
-  discord_id?: string
   oidc_id?: string
   wechat_id?: string
   telegram_id?: string
   linux_do_id?: string
-  language?: string
   setting?: Record<string, unknown> | string
 }
-
-export interface LoginSession {
-  sid: string
-  current: boolean
-  login_method: string
-  ip: string
-  user_agent: string
-  created_at: number
-  last_active_at: number
-  expires_at: number
-}
-
-export interface AuthBundle {
-  access_token: string
-  token_type: 'Bearer' | string
-  access_expires_at: number
-  user: AuthUser
-  session: LoginSession
-}
-
-export type AuthBootstrapState = 'idle' | 'checking' | 'complete'
 
 interface AuthState {
   auth: {
     user: AuthUser | null
-    accessToken: string | null
-    accessExpiresAt: number | null
-    session: LoginSession | null
-    pending2FAFlowToken: string | null
-    bootstrapState: AuthBootstrapState
-    setBundle: (bundle: AuthBundle) => void
     setUser: (user: AuthUser | null) => void
-    setPending2FAFlowToken: (flowToken: string | null) => void
-    setBootstrapState: (bootstrapState: AuthBootstrapState) => void
-    reset: (bootstrapState?: AuthBootstrapState) => void
+    reset: () => void
   }
 }
 
-export const useAuthStore = create<AuthState>()((set) => ({
-  auth: {
-    user: null,
-    accessToken: null,
-    accessExpiresAt: null,
-    session: null,
-    pending2FAFlowToken: null,
-    bootstrapState: 'idle',
-    setBundle: (bundle) =>
-      set((state) => ({
-        ...state,
-        auth: {
-          ...state.auth,
-          user: bundle.user,
-          accessToken: bundle.access_token,
-          accessExpiresAt: bundle.access_expires_at,
-          session: bundle.session,
-          pending2FAFlowToken: null,
-          bootstrapState: 'complete',
-        },
-      })),
-    setUser: (user) =>
-      set((state) => ({
-        ...state,
-        auth: { ...state.auth, user },
-      })),
-    setPending2FAFlowToken: (pending2FAFlowToken) =>
-      set((state) => ({
-        ...state,
-        auth: { ...state.auth, pending2FAFlowToken },
-      })),
-    setBootstrapState: (bootstrapState) =>
-      set((state) => ({
-        ...state,
-        auth: { ...state.auth, bootstrapState },
-      })),
-    reset: (bootstrapState = 'complete') =>
-      set((state) => ({
-        ...state,
-        auth: {
-          ...state.auth,
-          user: null,
-          accessToken: null,
-          accessExpiresAt: null,
-          session: null,
-          pending2FAFlowToken: null,
-          bootstrapState,
-        },
-      })),
-  },
-}))
+export const useAuthStore = create<AuthState>()((set) => {
+  // Restore user info from localStorage
+  const initUser = (() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = window.localStorage.getItem('user')
+        return saved ? JSON.parse(saved) : null
+      }
+    } catch {
+      // Clear dirty data when parsing fails
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('user')
+      }
+    }
+    return null
+  })()
+
+  return {
+    auth: {
+      user: initUser,
+      setUser: (user) =>
+        set((state) => {
+          // Persist user to localStorage
+          if (typeof window !== 'undefined') {
+            if (user) {
+              window.localStorage.setItem('user', JSON.stringify(user))
+            } else {
+              window.localStorage.removeItem('user')
+            }
+          }
+          return { ...state, auth: { ...state.auth, user } }
+        }),
+      reset: () =>
+        set((state) => {
+          if (typeof window !== 'undefined') {
+            window.localStorage.removeItem('user')
+            // uid 必须一并清除。它随每个请求以 TF-User 头发出,若登出/401 后
+            // 残留,下一次请求仍会带着失效的 uid 再次 401,陷入无法重新登录的
+            // 死循环。
+            removeUserId()
+          }
+          return {
+            ...state,
+            auth: { ...state.auth, user: null },
+          }
+        }),
+    },
+  }
+})

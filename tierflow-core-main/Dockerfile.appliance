@@ -1,0 +1,32 @@
+# Build the appliance image from a frontend bundle that has already passed
+# `bun run build:check` on the release workstation.  Keeping the Bun stage out
+# of this Dockerfile makes appliance refreshes possible on isolated networks
+# while the Go binary still embeds the complete TierFlow UI.
+ARG RUNTIME_IMAGE=debian:bookworm-slim
+
+FROM golang:1.26.1-alpine AS builder
+
+ENV PATH=/usr/local/go/bin:${PATH}
+ENV GO111MODULE=on CGO_ENABLED=0 GOEXPERIMENT=greenteagc
+ARG TARGETOS
+ARG TARGETARCH
+ARG GOPROXY=https://goproxy.cn,direct
+ENV GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} GOPROXY=${GOPROXY}
+
+WORKDIR /build
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN test -s web/default/dist/index.html && \
+    go build -ldflags "-s -w -X 'github.com/Zer0Echo/tierflow-core/common.Version=$(cat VERSION)'" -o new-api
+
+FROM ${RUNTIME_IMAGE}
+
+COPY --from=builder /build/new-api /
+COPY LICENSE NOTICE THIRD-PARTY-LICENSES.md /licenses/
+
+EXPOSE 3000
+WORKDIR /data
+ENTRYPOINT ["/new-api"]

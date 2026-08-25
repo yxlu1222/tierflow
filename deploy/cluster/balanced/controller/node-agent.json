@@ -1,0 +1,32 @@
+{
+  "node_name": "spark-c906",
+  "role": "controller",
+  "listen": "127.0.0.1:9020",
+  "advertise_url": "http://127.0.0.1:9020",
+  "controller_url": "http://127.0.0.1:3000/api/cluster/heartbeat",
+  "token_file": "/etc/tierflow/cluster-agent.token",
+  "state_file": "/var/lib/tierflow/node-agent-state.json",
+  "disk_path": "/var/lib/tierflow",
+  "heartbeat_interval_seconds": 10,
+  "command_timeout_seconds": 30,
+  "models": [
+    {
+      "id": "qwen3.8-27b",
+      "display_name": "Qwen3.8-27B",
+      "service": "tierflow-model-qwen38.service",
+      "endpoint": "http://127.0.0.1:8102/v1",
+      "model_path": "/var/lib/tierflow/models",
+      "manifest_path": "/var/lib/tierflow/models/.manifests/qwen3.8-27b.sha256",
+      "channel_id": 2
+    },
+    {
+      "id": "lfm2.5-2.6b",
+      "display_name": "LFM2.5-2.6B",
+      "service": "tierflow-model-lfm25.service",
+      "endpoint": "http://127.0.0.1:8105/v1",
+      "model_path": "/var/lib/tierflow/models",
+      "manifest_path": "/var/lib/tierflow/models/.manifests/lfm2.5-2.6b.sha256",
+      "channel_id": 5
+    }
+  ]
+}

@@ -21,8 +21,14 @@ import (
 // responsesAPINativelySupported 标记哪些上游适配器原生支持 Responses API（ConvertOpenAIResponsesRequest
 // 会把请求透传到 /v1/responses）。其余适配器要么直接 "not implemented"，要么没有该端点，
 // 对它们一律走「responses → chat/completions」反向转换，使任何会 chat 的渠道都能接住 /v1/responses。
-func responsesAPINativelySupported(apiType int) bool {
-	switch apiType {
+func responsesAPINativelySupported(info *relaycommon.RelayInfo) bool {
+	if info == nil {
+		return false
+	}
+	if info.ChannelSetting.ResponsesViaChatCompletions {
+		return false
+	}
+	switch info.ApiType {
 	case constant.APITypeOpenAI,
 		constant.APITypeOpenRouter,
 		constant.APITypeXinference,

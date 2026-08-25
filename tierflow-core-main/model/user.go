@@ -60,6 +60,8 @@ type User struct {
 	Remark      string         `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
 	CreatedAt   int64          `json:"created_at" gorm:"autoCreateTime;column:created_at"`
 	LastLoginAt int64          `json:"last_login_at" gorm:"default:0;column:last_login_at"`
+	APIKeyCount int64          `json:"api_key_count" gorm:"-:all"`
+	SkillCount  int64          `json:"skill_count" gorm:"-:all"`
 }
 
 func (user *User) ToBaseUser() *UserBase {
@@ -168,6 +170,44 @@ func attachInviterUids(users []*User) {
 	}
 }
 
+// attachUserApplianceCounts adds appliance-specific list metrics in one bulk
+// query. SkillCount is reserved for the upcoming Skill installation store;
+// until that store is introduced it remains zero without changing the API
+// shape consumed by the appliance UI.
+func attachUserApplianceCounts(users []*User) error {
+	if len(users) == 0 {
+		return nil
+	}
+
+	userIds := make([]int, 0, len(users))
+	for _, user := range users {
+		userIds = append(userIds, user.Id)
+	}
+
+	type userCount struct {
+		UserId int   `gorm:"column:user_id"`
+		Count  int64 `gorm:"column:count"`
+	}
+	var keyCounts []userCount
+	if err := DB.Model(&Token{}).
+		Select("user_id, COUNT(*) as count").
+		Where("user_id IN ? AND user_subscription_id = ?", userIds, 0).
+		Group("user_id").
+		Find(&keyCounts).Error; err != nil {
+		return err
+	}
+
+	keyCountByUser := make(map[int]int64, len(keyCounts))
+	for _, item := range keyCounts {
+		keyCountByUser[item.UserId] = item.Count
+	}
+	for _, user := range users {
+		user.APIKeyCount = keyCountByUser[user.Id]
+		user.SkillCount = 0
+	}
+	return nil
+}
+
 func GetAllUsers(pageInfo *common.PageInfo) (users []*User, total int64, err error) {
 	// Start transaction
 	tx := DB.Begin()
@@ -200,6 +240,9 @@ func GetAllUsers(pageInfo *common.PageInfo) (users []*User, total int64, err err
 	}
 
 	attachInviterUids(users)
+	if err = attachUserApplianceCounts(users); err != nil {
+		return nil, 0, err
+	}
 	return users, total, nil
 }
 
@@ -271,6 +314,9 @@ func SearchUsers(keyword string, group string, role *int, status *int, startIdx 
 	}
 
 	attachInviterUids(users)
+	if err = attachUserApplianceCounts(users); err != nil {
+		return nil, 0, err
+	}
 
 	return users, total, nil
 }

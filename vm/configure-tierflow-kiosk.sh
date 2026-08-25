@@ -57,7 +57,11 @@ user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("browser.startup.homepage", "${appliance_url}");
 user_pref("browser.startup.page", 1);
 user_pref("datareporting.healthreport.uploadEnabled", false);
-user_pref("gfx.webrender.force-disabled", true);
+# Keep WebRender enabled but force its software backend.  Disabling WebRender
+# entirely makes newer TierFlow gradients and composited panels render as a
+# blank frame on Firefox 153 under VirtualBox's VMSVGA adapter.
+user_pref("gfx.webrender.force-disabled", false);
+user_pref("gfx.webrender.software", true);
 user_pref("gfx.x11-egl.force-disabled", true);
 user_pref("layers.acceleration.disabled", true);
 user_pref("media.hardware-video-decoding.enabled", false);
@@ -87,6 +91,16 @@ for attempt in \$(seq 1 120); do
   fi
   /usr/bin/sleep 1
 done
+
+# On VirtualBox/NEM the first Firefox content process may be created while
+# GNOME/VMSVGA is still settling.  It then maps a white window and never asks
+# for the JavaScript bundle.  Delay only the first kiosk launch of each boot;
+# later crash recovery remains fast.  /run is cleared automatically at boot.
+boot_ready_marker=/run/user/\$(id -u)/tierflow-kiosk-boot-ready
+if [[ ! -e \${boot_ready_marker} ]]; then
+  /usr/bin/touch "\${boot_ready_marker}"
+  /usr/bin/sleep 18
+fi
 
 rm -f \
   "${firefox_profile}/.parentlock" \

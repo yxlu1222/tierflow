@@ -68,11 +68,11 @@ export function SectionPageLayout(props: SectionPageLayoutProps) {
 
   const header =
     title != null || actions != null || breadcrumb != null ? (
-      <div className='px-4 pt-5 pb-2.5 sm:px-10 sm:pt-8 sm:pb-3'>
+      <div className='px-4 pt-6 pb-3 sm:px-10 sm:pt-9 sm:pb-4'>
         {breadcrumb != null && <div className='mb-2 sm:mb-3'>{breadcrumb}</div>}
         <div className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2 sm:gap-x-4'>
-          <div className='min-w-0 flex-1'>
-            <h2 className='text-foreground m-0 text-xl font-semibold tracking-tight sm:text-2xl'>
+          <div className='min-w-[10rem] flex-1'>
+            <h2 className='text-foreground m-0 text-2xl font-semibold tracking-[-0.025em] sm:text-[30px]'>
               {title}
             </h2>
           </div>

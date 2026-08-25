@@ -44,6 +44,12 @@ func TextHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types
 		return types.NewError(err, types.ErrorCodeChannelModelMappedError, types.ErrOptionWithSkipRetry())
 	}
 
+	// Nanbeige 等本地模型模板要求 system 只能出现一次且必须位于首条。WorkBuddy/Codex
+	// 可能在历史中间注入 developer/system 消息，因此对显式启用该兼容项的渠道先统一归并。
+	if info.ChannelSetting.NormalizeSystemMessages {
+		request.Messages = service.NormalizeChatSystemMessages(request.Messages)
+	}
+
 	// TierFlow: 修复历史里被污染的 tool_calls —— 空 id / 空 tool_call_id 按顺序补确定性 id。
 	// 这类请求不修必被严格上游 400（如 "tool_calls.id and tool_calls.type are required"），
 	// 修复可救活已被非规范上游污染的存量客户端会话。详见 service/tool_call_normalize.go。

@@ -132,6 +132,7 @@ func OaiChatToResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 		itemID      string
 		callID      string
 		name        string
+		namespace   string
 		args        strings.Builder
 	}
 	toolByChatIndex := make(map[int]*toolState)
@@ -211,10 +212,17 @@ func OaiChatToResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 				}
 				st, ok := toolByChatIndex[idx]
 				if !ok {
+					name := tc.Function.Name
+					namespace := ""
+					if decodedNamespace, decodedName, decoded := service.DecodeResponsesNamespaceToolName(name); decoded {
+						namespace = decodedNamespace
+						name = decodedName
+					}
 					st = &toolState{
 						outputIndex: nextOutputIndex,
 						callID:      tc.ID,
-						name:        tc.Function.Name,
+						name:        name,
+						namespace:   namespace,
 					}
 					nextOutputIndex++
 					st.itemID = fmt.Sprintf("fc_%s_%d", responseId, st.outputIndex)
@@ -223,12 +231,16 @@ func OaiChatToResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 					}
 					toolByChatIndex[idx] = st
 					toolOrder = append(toolOrder, st)
+					item := map[string]any{
+						"type": "function_call", "id": st.itemID, "status": "in_progress",
+						"call_id": st.callID, "name": st.name, "arguments": "",
+					}
+					if st.namespace != "" {
+						item["namespace"] = st.namespace
+					}
 					emit("response.output_item.added", map[string]any{
 						"output_index": st.outputIndex,
-						"item": map[string]any{
-							"type": "function_call", "id": st.itemID, "status": "in_progress",
-							"call_id": st.callID, "name": st.name, "arguments": "",
-						},
+						"item":         item,
 					})
 				}
 				if tc.ID != "" && st.callID == st.itemID {
@@ -236,6 +248,10 @@ func OaiChatToResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 				}
 				if tc.Function.Name != "" && st.name == "" {
 					st.name = tc.Function.Name
+					if decodedNamespace, decodedName, decoded := service.DecodeResponsesNamespaceToolName(st.name); decoded {
+						st.namespace = decodedNamespace
+						st.name = decodedName
+					}
 				}
 				if tc.Function.Arguments != "" {
 					st.args.WriteString(tc.Function.Arguments)
@@ -283,6 +299,9 @@ func OaiChatToResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo
 		item := map[string]any{
 			"type": "function_call", "id": st.itemID, "status": "completed",
 			"call_id": st.callID, "name": st.name, "arguments": args,
+		}
+		if st.namespace != "" {
+			item["namespace"] = st.namespace
 		}
 		emit("response.output_item.done", map[string]any{"output_index": st.outputIndex, "item": item})
 		finals = append(finals, finalItem{st.outputIndex, item})

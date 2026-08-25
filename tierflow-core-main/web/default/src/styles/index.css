@@ -19,6 +19,10 @@ Copyright (C) 2023-2026 TierFlow
 @import './theme.css';
 
 @layer base {
+  html.tierflow-appliance {
+    font-size: 18px;
+  }
+
   * {
     @apply border-border outline-ring/50;
     scrollbar-width: thin;
